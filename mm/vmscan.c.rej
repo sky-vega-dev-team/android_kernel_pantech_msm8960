@@ -1,0 +1,11 @@
+--- mm/vmscan.c
++++ mm/vmscan.c
+@@ -2615,7 +2617,7 @@ loop_again:
+ 				    !zone_watermark_ok_safe(zone, testorder,
+ 					high_wmark_pages(zone) + balance_gap,
+ 					end_zone, 0)) {
+-				shrink_zone(priority, zone, &sc);
++				shrink_zone(zone, &sc);
+ 
+ 				reclaim_state->reclaimed_slab = 0;
+ 				nr_slab = shrink_slab(&shrink, sc.nr_scanned, lru_pages);
