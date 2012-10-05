@@ -373,7 +373,7 @@ EXPORT_SYMBOL(unregister_reboot_notifier);
 void kernel_restart(char *cmd)
 {
 	kernel_restart_prepare(cmd);
-
+	disable_nonboot_cpus();
 #ifdef CONFIG_F_SKYDISP_SHARP_LCD_FLICKER
         pantech_mipi_lcd_shutdown();
 #endif
