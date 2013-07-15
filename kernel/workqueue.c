@@ -41,6 +41,7 @@
 #include <linux/debug_locks.h>
 #include <linux/lockdep.h>
 #include <linux/idr.h>
+#include <linux/bug.h>
 
 #if defined(CONFIG_PANTECH_DEBUG)
 #ifdef CONFIG_PANTECH_DEBUG_SCHED_LOG  //p14291_pantech_dbg
@@ -1923,6 +1924,7 @@ __acquires(&gcwq->lock)
 		       current->comm, preempt_count(), task_pid_nr(current),
 		       worker->current_func);
 		debug_show_held_locks(current);
+		BUG_ON(PANIC_CORRUPTION);
 		dump_stack();
 	}
 
