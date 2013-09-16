@@ -1995,10 +1995,8 @@ static int msm_fb_open(struct fb_info *info, int user)
 	}
 
 	if (info->node == 0 && !(mfd->cont_splash_done)) {	/* primary */
-#ifdef CONFIG_F_SKYDISP_EF52_KK_TEARING
-			if (!mfd->ref_cnt)
+			if(!mfd->ref_cnt)
 				mdp_set_dma_pan_info(info, NULL, TRUE);
-#endif		
 			mfd->ref_cnt++;
 			return 0;
 	}
