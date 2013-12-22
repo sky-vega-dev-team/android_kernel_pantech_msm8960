@@ -98,11 +98,6 @@ enum {
 	MSM_PM_DEBUG_HOTPLUG = BIT(8),
 };
 
-static int msm_pm_debug_mask = 1;
-module_param_named(
-	debug_mask, msm_pm_debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP
-);
-static int msm_pm_retention_tz_call;
 #if defined(CONFIG_PANTECH_DEBUG) 
 #ifdef CONFIG_PANTECH_DEBUG_SCHED_LOG  //p14291_121102
 static int debug_power_collaspe_status[4] = {0};
@@ -1154,11 +1149,6 @@ enter_exit:
 	return 0;
 }
 
-static struct platform_suspend_ops msm_pm_ops = {
-	.enter = msm_pm_enter,
-	.valid = suspend_valid_only_mem,
-};
-
 /******************************************************************************
  * Initialization routine
  *****************************************************************************/
@@ -1305,6 +1295,7 @@ static int __init msm_pm_setup_saved_state(void)
 core_initcall(msm_pm_setup_saved_state);
 
 static const struct platform_suspend_ops msm_pm_ops = {
+	.prepare_late = msm_pm_prepare_late,
 	.enter = msm_pm_enter,
 	.valid = suspend_valid_only_mem,
 };
