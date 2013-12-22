@@ -1177,7 +1177,7 @@ static struct pvs_table * __init select_freq_plan(
 	else
 	{
 		proc_speed = drv.speed_bin;
-		proc_pvs = drv.pvs.bin;
+		proc_pvs = drv.pvs_bin;
 		soc_ver = socinfo_get_version();
 	}	
 #endif
