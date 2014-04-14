@@ -248,8 +248,9 @@ int ping_init_sock(struct sock *sk)
 	struct net *net = sock_net(sk);
 	gid_t group = current_egid();
 	gid_t range[2];
-	struct group_info *group_info = get_current_groups();
-	int i, j, count = group_info->ngroups;
+	struct group_info *group_info;
+	int i, j, count  ;
+        int ret = 0;
 #ifdef CONFIG_LGU_DS_RETURN_CURRENT_GROUP_ID
 	int ret = 0;
 #endif
@@ -257,6 +258,8 @@ int ping_init_sock(struct sock *sk)
 	if (range[0] <= group && group <= range[1])
 		return 0;
 
+	group_info = get_current_groups();
+	count = group_info->ngroups;
 	for (i = 0; i < group_info->nblocks; i++) {
 		int cp_count = min_t(int, NGROUPS_PER_BLOCK, count);
 
@@ -266,7 +269,7 @@ int ping_init_sock(struct sock *sk)
 #ifdef CONFIG_LGU_DS_RETURN_CURRENT_GROUP_ID
 				goto out_release_group;
 #else
-				return 0;
+				goto out_release_group;
 #endif				
 		}
 
