@@ -18,11 +18,8 @@
 #include <linux/compat.h>
 #include <linux/sched.h>
 #include <linux/seccomp.h>
-<<<<<<< HEAD
-=======
 #include <linux/slab.h>
 #include <linux/syscalls.h>
->>>>>>> ce16e10... seccomp: split filter prep from check and apply
 
 /* #define SECCOMP_DEBUG 1 */
 
@@ -306,12 +303,8 @@ fail:
  *
  * Returns 0 on success and non-zero otherwise.
  */
-<<<<<<< HEAD
-long seccomp_attach_user_filter(char __user *user_filter)
-=======
 static struct seccomp_filter *
 seccomp_prepare_user_filter(const char __user *user_filter)
->>>>>>> ce16e10... seccomp: split filter prep from check and apply
 {
 	struct sock_fprog fprog;
 	struct seccomp_filter *filter = ERR_PTR(-EFAULT);
@@ -563,8 +556,6 @@ static long seccomp_set_mode_filter(char __user *filter)
 	struct seccomp_filter *prepared = NULL;
 	long ret = -EINVAL;
 
-<<<<<<< HEAD
-=======
 	/* Validate flags. */
 	if (flags != 0)
 		goto out;
@@ -574,7 +565,6 @@ static long seccomp_set_mode_filter(char __user *filter)
 	if (IS_ERR(prepared))
 		return PTR_ERR(prepared);
 
->>>>>>> ce16e10... seccomp: split filter prep from check and apply
 	if (!seccomp_may_assign_mode(seccomp_mode))
 		goto out;
 
