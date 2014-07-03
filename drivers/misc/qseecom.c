@@ -1151,8 +1151,25 @@ static int __qseecom_send_cmd(struct qseecom_dev_handle *data,
 	u32 reqd_len_sb_in = 0;
 	struct qseecom_client_send_data_ireq send_data_req;
 	struct qseecom_command_scm_resp resp;
+	unsigned long flags;
+	struct qseecom_registered_app_list *ptr_app;
+	bool found_app = false;
+	int name_len = 0;
 
 	reqd_len_sb_in = req->cmd_req_len + req->resp_len;
+
+	/* find app_id & img_name from list */
+	spin_lock_irqsave(&qseecom.registered_app_list_lock, flags);
+	list_for_each_entry(ptr_app, &qseecom.registered_app_list_head,
+							list) {
+		name_len = min(strlen(data->client.app_name),
+				strlen(ptr_app->app_name));
+		if ((ptr_app->app_id == data->client.app_id) &&
+			 (!memcmp((void *)ptr_app->app_name,
+				(void *)data->client.app_name, name_len))) {
+			found_app = true;
+			break;
+		}
 
 	send_data_req.qsee_cmd_id = QSEOS_CLIENT_SEND_DATA_COMMAND;
 	send_data_req.app_id = data->client.app_id;
