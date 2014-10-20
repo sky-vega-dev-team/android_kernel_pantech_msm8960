@@ -372,9 +372,7 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security -Wno-unused \
-		   -Wno-maybe-uninitialized \
 		   -fno-delete-null-pointer-checks \
-		   -Wno-sizeof-pointer-memaccess \
 		   -std=gnu89
 
 #// 20120105, albatros, imei ÁÖ¼Ò°ªÀÇ °ø¿ëÀ¸·Î »ç¿ëÀ» À§ÇØ¼­
