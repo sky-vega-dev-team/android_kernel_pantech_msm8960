@@ -154,4 +154,6 @@ source "drivers/coresight/Kconfig"
 
 source "drivers/avclog/Kconfig"
 
+source "drivers/sensors/Kconfig"
+
 endmenu

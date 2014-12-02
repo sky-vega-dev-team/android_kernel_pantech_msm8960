@@ -145,3 +145,7 @@ obj-$(CONFIG_CORESIGHT)		+= coresight/
 
 #avclog
 obj-$(CONFIG_PANTECH_SELINUX_DENIAL_LOG)       += avclog/
+
+#sensor_class
+obj-$(CONFIG_SENSORS)		+= sensors/
+
