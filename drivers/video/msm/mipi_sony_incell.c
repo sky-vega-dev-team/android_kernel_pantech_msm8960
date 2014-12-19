@@ -137,8 +137,8 @@ static int gpio_init = false;
 #endif
 #endif
 
-char mipi_sony_backlight_tbl[17] =
-{0, 35, 40, 50, 60, 70, 80, 90, 100, 115, 130, 145, 160, 175, 190, 205, 220};
+char mipi_sony_backlight_tbl[20] =
+{5, 10, 20, 35, 40, 50, 60, 70, 80, 90, 100, 115, 130, 145, 160, 175, 190, 205, 220};
 //05.03 modify for current consumption
 //{0, 35, 40, 55, 70, 85,  100, 115, 130, 145, 160, 175, 190, 205, 220, 235, 255};
 
