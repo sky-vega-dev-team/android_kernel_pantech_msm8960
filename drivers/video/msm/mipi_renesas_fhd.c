@@ -172,7 +172,7 @@ static struct dsi_cmd_desc renesas_cabc_ctrl_con_cmds[] = {
     {DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(cabc_min_bl_val), cabc_min_bl_val},
     {DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(cabc_ctrl_con), cabc_ctrl_con},
 };
-static char bl_table[] = {0, 25, 40, 55, 70, 85, 100, 115, 130, 145, 160, 175, 190, 205, 220, 235, 255}; 
+static char bl_table[] = {10, 25, 40, 55, 70, 85, 100, 115, 130, 145, 160, 175, 190, 205, 220, 235, 255}; 
 
 #endif 
 
