@@ -448,7 +448,7 @@ static uint32 mipi_rohm_otp_status(struct msm_fb_data_type *mfd)
 }
 #endif
 
-char bl_table[] = {0, 25, 40, 55, 70, 85, 100, 115, 130, 145, 160, 175, 190, 205, 220, 235, 255}; 
+char bl_table[] = {0, 20, 30, 55, 70, 85, 100, 115, 130, 145, 160, 175, 190, 205, 220, 235, 255}; 
 
 void mipi_cabc_lcd_bl_init(int bl_level)
 {
@@ -928,7 +928,11 @@ static void mipi_rohm_set_backlight(struct msm_fb_data_type *mfd)
 
 	//ENTER_FUNC2();
 
-	bl_level = mfd->bl_level;	
+	if (mfd->bl_level == 0) {
+		bl_level = 1;
+	} else {
+        bl_level = mfd->bl_level;
+	}
 	printk(KERN_INFO"mipi_rohm_set_backlight bl_level =%d \n",bl_level);
 
 #ifdef CONFIG_F_SKYDISP_SILENT_BOOT
@@ -968,7 +972,12 @@ static void mipi_rohm_set_backlight(struct msm_fb_data_type *mfd)
 	mipi_set_tx_power_mode(0);
 	mipi_dsi_cmds_tx(&rohm_tx_buf, rohm_display_cabc_bl_set_cmds,
 			ARRAY_SIZE(rohm_display_cabc_bl_set_cmds));
-	prev_bl_level = mfd->bl_level;	
+	if (mfd->bl_level == 0) {
+		prev_bl_level = 1;
+	} else {
+		prev_bl_level = mfd->bl_level;	
+	}
+
 #ifdef FEATURE_LOW_LEVEL_CABC_OFF
 	if(!rohm_state.acl_flag) // UI_set is cabc_on
 	{
