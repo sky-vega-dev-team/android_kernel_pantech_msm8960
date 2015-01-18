@@ -140,5 +140,8 @@ obj-$(CONFIG_PM_DEVFREQ)	+= devfreq/
 
 #MobiCore
 obj-$(CONFIG_MOBICORE_SUPPORT)  += gud/
-
+obj-$(CONFIG_SKY_DMB)		+= dmb/
 obj-$(CONFIG_CORESIGHT)		+= coresight/
+
+#avclog
+obj-$(CONFIG_PANTECH_SELINUX_DENIAL_LOG)       += avclog/
