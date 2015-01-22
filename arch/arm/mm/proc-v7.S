@@ -290,7 +290,7 @@ __v7_setup:
 	bne	1f
 	mov	r5, #0
 	mcr	p14, 6, r5, c1, c0, 0		@ Initialize TEEHBR to 0
-	mrc	p14, 6, r0, c0, c0, 0	a	@ load TEECR
+	mrc	p14, 6, r0, c0, c0, 0		@ load TEECR
 	orr	r0, r0, #1			@ set the 1st bit in order to
 	mcr	p14, 6, r0, c0, c0, 0		@ stop userspace TEEHBR access
 1:
