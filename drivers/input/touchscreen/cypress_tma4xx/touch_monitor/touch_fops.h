@@ -11,7 +11,7 @@
 /* for SkyTestMenu */
 /* -------------------------------------------------------------------- */
 #if defined(CY_USE_TMA768) && defined(CY_USE_ESD_COUNT)
-#include "../back_touch/tchkey_pt.h"
+#include "../../back_touch/tchkey_pt.h"
 extern void tchkeypt_status_change_mode_front_touch_reset(void);
 extern void tchkeyptdata_disable_irq(void);
 #endif /* --CY_USE_TMA768 && CY_USE_ESD_COUNT */
