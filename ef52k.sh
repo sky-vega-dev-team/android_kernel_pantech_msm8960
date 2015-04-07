@@ -19,7 +19,7 @@ export CROSS_COMPILE=~/gcc_linaro/bin/arm-eabi-
 #export CROSS_COMPILE=~/android-ndk-r9d/toolchains/arm-linux-androideabi-4.8/prebuilt/linux-x86/bin/arm-linux-androideabi-
 #Export Host name and user build
 export KBUILD_BUILD_USER=lehoang
-export KBUILD_BUILD_HOST=HLF-LeHoang96-Ubuntu32
+export KBUILD_BUILD_HOST=tymnll
 ##############################################################################
 # make zImage
 ##############################################################################
