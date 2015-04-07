@@ -14,6 +14,14 @@
 #define MIPI_RENESAS_H
 
 #define RENESAS_FWVGA_TWO_LANE
+#define LCD_BL_MAX 16
+
+/*20121214, kkcho
+   Bug : powermanagement problem when Power -key ON/OFF (push!push!)
+   Fix : BL_pin ctrl changed
+   Code : PowerMangerService.java(US, Park hou jae), mipi_renesas.c, board-8064_display.c
+*/
+#define FEATURE_RENESAS_BL_CTRL_CHG
 
 int mipi_renesas_device_register(struct msm_panel_info *pinfo,
 					u32 channel, u32 panel);

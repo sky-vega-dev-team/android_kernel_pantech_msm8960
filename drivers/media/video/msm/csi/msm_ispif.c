@@ -21,6 +21,10 @@
 #include "msm.h"
 #include "msm_ispif_hwreg.h"
 
+#if 0 //psj_test
+#undef CDBG
+#define CDBG(fmt, args...) printk(KERN_INFO "msm_ispif : " fmt, ##args)//pr_debug(fmt, ##args)
+#endif
 #define V4L2_IDENT_ISPIF                     50001
 #define CSID_VERSION_V2                      0x02000011
 #define CSID_VERSION_V3                      0x30000000
@@ -810,14 +814,18 @@ static long msm_ispif_cmd(struct v4l2_subdev *sd, void *arg)
 static long msm_ispif_subdev_ioctl(struct v4l2_subdev *sd, unsigned int cmd,
 								void *arg)
 {
+#if	1//def F_PANTECH_CAMERA_DEADBEEF_ERROR_FIX
 	struct ispif_device *ispif;
+#endif
 	switch (cmd) {
 	case VIDIOC_MSM_ISPIF_CFG:
 		return msm_ispif_cmd(sd, arg);
+#if	1//def F_PANTECH_CAMERA_DEADBEEF_ERROR_FIX        
 	case VIDIOC_MSM_ISPIF_REL:
 		ispif =	(struct ispif_device *)v4l2_get_subdevdata(sd);
 		msm_ispif_release(ispif);
 		return 0;
+#endif
 	default:
 		return -ENOIOCTLCMD;
 	}

@@ -148,8 +148,12 @@ source "drivers/devfreq/Kconfig"
 
 source "drivers/gud/Kconfig"
 
+source "drivers/dmb/Kconfig"
+
 source "drivers/coresight/Kconfig"
 
 source "drivers/sensors/Kconfig"
+
+source "drivers/avclog/Kconfig"
 
 endmenu

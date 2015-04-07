@@ -46,6 +46,7 @@
 
 #include "msm_fb_panel.h"
 #include "mdp.h"
+#define BOOT_TOUCH_RESET
 
 #define MSM_FB_DEFAULT_PAGE_SIZE 2
 #define MFD_KEY  0x11161126
@@ -220,6 +221,9 @@ struct msm_fb_data_type {
 	uint32 sec_mapped;
 	uint32 sec_active;
 	uint32 max_map_size;
+#ifdef CONFIG_F_SKYDISP_SKIP_BLSET_WITH_EFS_ERASE
+	int bl_set_first_skip;
+#endif	
 };
 struct msm_fb_backup_type {
 	struct fb_info info;

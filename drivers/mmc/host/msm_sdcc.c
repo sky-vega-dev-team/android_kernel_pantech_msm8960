@@ -2252,6 +2252,13 @@ msmsdcc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 		host->curr.req_tout_ms = 20000;
 	else
 		host->curr.req_tout_ms = MSM_MMC_REQ_TIMEOUT;
+#ifdef CONFIG_FEATURE_PANTECH_SAMSUNG_EMMC_BUG_FIX
+	if(mrq->cmd->opcode == MMC_SWITCH
+		&& ((mrq->cmd->arg >> 16)&0xFF) == EXT_CSD_BKOPS_START
+		){
+		host->curr.req_tout_ms = MSM_MMC_REQ_TIMEOUT*6;  // 1 min
+	}
+#endif
 	/*
 	 * Kick the software request timeout timer here with the timeout
 	 * value identified above

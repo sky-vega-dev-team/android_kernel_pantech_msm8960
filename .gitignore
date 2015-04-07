@@ -84,3 +84,6 @@ GTAGS
 *.orig
 *~
 \#*#
+obj/*
+/zImage
+/kernel_log.txt

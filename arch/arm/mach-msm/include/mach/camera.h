@@ -27,11 +27,23 @@
 #include <linux/msm_ion.h>
 #include <mach/iommu_domains.h>
 
-#define CONFIG_MSM_CAMERA_DEBUG
+#ifdef CONFIG_PANTECH_CAMERA
+#define F_PANTECH_CAMERA_LOG_PRINTK
+#endif
+
+#undef F_PANTECH_CAMERA_LOG_PRINTK
+#undef CONFIG_MSM_CAMERA_DEBUG
 #ifdef CONFIG_MSM_CAMERA_DEBUG
 #define CDBG(fmt, args...) pr_debug(fmt, ##args)
 #else
 #define CDBG(fmt, args...) do { } while (0)
+#endif
+#ifdef F_PANTECH_CAMERA_LOG_PRINTK
+#define SKYCDBG(fmt, args...) printk(KERN_INFO "SKYCDBG: " fmt, ##args)
+#define SKYCERR(fmt, args...) printk(KERN_ERR "SKYCERR: " fmt, ##args)
+#else
+#define SKYCDBG(fmt, args...) do{}while(0)
+#define SKYCERR(fmt, args...) do{}while(0)
 #endif
 
 #define PAD_TO_2K(a, b) ((!b) ? a : (((a)+2047) & ~2047))
@@ -137,6 +149,22 @@ struct msm_vpe_phy_info {
 #define VFE31_OUTPUT_MODE_P_ALL_CHNLS (0x1 << 5)
 #endif
 
+#if 0 //#ifndef F_PANTECH_CAMERA_QPATCH_JPEG_ZSL
+#define CSI_EMBED_DATA 0x12
+#define CSI_RESERVED_DATA_0 0x13
+#define CSI_YUV422_8  0x1E
+#if 1//#ifdef F_PANTECH_CAMERA_1080P_PREVIEW	
+#define CSI_RESERVED_DATA 0x13
+#endif
+#define CSI_RAW8    0x2A
+#define CSI_RAW10   0x2B
+#define CSI_RAW12   0x2C
+
+#define CSI_DECODE_6BIT 0
+#define CSI_DECODE_8BIT 1
+#define CSI_DECODE_10BIT 2
+#define CSI_DECODE_DPCM_10_8_10 5
+#endif
 struct msm_vfe_phy_info {
 	uint32_t sbuf_phy;
 	uint32_t planar0_off;
@@ -312,6 +340,10 @@ struct msm_camera_cci_gpio_cfg {
 enum msm_camera_i2c_cmd_type {
 	MSM_CAMERA_I2C_CMD_WRITE,
 	MSM_CAMERA_I2C_CMD_POLL,
+#ifdef CONFIG_PANTECH_CAMERA_AS0260
+	MSM_CAMERA_I2C_CMD_MCU,
+	MSM_CAMERA_I2C_CMD_TRIM,
+#endif
 };
 
 struct msm_camera_i2c_reg_conf {

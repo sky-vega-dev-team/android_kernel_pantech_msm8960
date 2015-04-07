@@ -243,10 +243,10 @@ CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 	  else if [ -x /bin/bash ]; then echo /bin/bash; \
 	  else echo sh; fi ; fi)
 
-HOSTCC       = gcc
-HOSTCXX      = g++
-HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer
-HOSTCXXFLAGS = -O2
+HOSTCC       = ccache gcc
+HOSTCXX      = ccache g++
+HOSTCFLAGS   = -Wmissing-prototypes -Wstrict-prototypes -O3 -fomit-frame-pointer
+HOSTCXXFLAGS = -O3
 
 # Decide whether to build built-in, modular, or both.
 # Normally, just do built-in.
@@ -354,8 +354,8 @@ CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 CFLAGS_MODULE   =
 AFLAGS_MODULE   =
 LDFLAGS_MODULE  =
-CFLAGS_KERNEL	=
-AFLAGS_KERNEL	=
+CFLAGS_KERNEL  = -mcpu=cortex-a15 -mtune=cortex-a15 -marm -mfpu=neon-vfpv4
+AFLAGS_KERNEL  = -mcpu=cortex-a15 -mtune=cortex-a15 -marm -mfpu=neon-vfpv4
 CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
 
 
@@ -373,6 +373,12 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
 		   -fno-delete-null-pointer-checks
+#// 20120105, albatros, imei \C1ּҰ\AA\C0\C7 \B0\F8\BF\EB\C0\B8\B7\CE \BB\E7\BF\EB\C0\BB \C0\A7\C7ؼ\AD
+ifeq ($(OEM_PRODUCT_MANUFACTURER),PANTECH)
+LINUXINCLUDE += -I$(srctree)/../vendor/pantech/frameworks/sky_rawdata
+
+
+endif
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_AFLAGS   := -D__ASSEMBLY__
@@ -380,6 +386,14 @@ KBUILD_AFLAGS_MODULE  := -DMODULE
 KBUILD_CFLAGS_MODULE  := -DMODULE
 KBUILD_LDFLAGS_MODULE := -T $(srctree)/scripts/module-common.lds
 
+######################################################################
+# PANTECH_KERNEL_FLAGS
+######################################################################
+ifeq ($(OEM_PRODUCT_MANUFACTURER),PANTECH)
+PANTECH_BUILD_SYSTEM := $(ANDROID_BUILD_TOP)/vendor/pantech/build
+include $(PANTECH_BUILD_SYSTEM)/pantech_config.mk
+KBUILD_CFLAGS += $(PANTECH_KERNEL_FLAGS)
+endif
 # Read KERNELRELEASE from include/config/kernel.release (if it exists)
 KERNELRELEASE = $(shell cat include/config/kernel.release 2> /dev/null)
 KERNELVERSION = $(VERSION)$(if $(PATCHLEVEL),.$(PATCHLEVEL)$(if $(SUBLEVEL),.$(SUBLEVEL)))$(EXTRAVERSION)

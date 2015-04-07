@@ -44,6 +44,7 @@ enum tabla_micbias_num {
 	TABLA_MICBIAS2,
 	TABLA_MICBIAS3,
 	TABLA_MICBIAS4,
+	TABLA_NUM_MICBIAS,
 };
 
 enum tabla_pid_current {
@@ -188,6 +189,7 @@ struct anc_header {
 	u32 reserved[3];
 	u32 num_anc_slots;
 };
+int wcd9310_headsetJackStatusGet(void); //HDJ_LS4_Sound_20120503 
 
 extern int tabla_mclk_enable(struct snd_soc_codec *codec, int mclk_enable,
 			     bool dapm);

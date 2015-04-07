@@ -45,6 +45,16 @@ extern int subsystem_restart(const char *name);
 extern struct subsys_device *subsys_register(struct subsys_desc *desc);
 extern void subsys_unregister(struct subsys_device *dev);
 
+#if defined(CONFIG_FEATURE_PANTECH_RESET_DSPS_CORE)
+extern int dsps_reset_state(void);
+extern int restore_restart_level(int restart);
+#endif
+
+#if defined(CONFIG_PANTECH_ERR_CRASH_LOGGING)
+// (+) p15060
+void ssr_dump_work( void );
+// (-) p15060
+#endif
 #else
 
 static inline int get_restart_level(void)

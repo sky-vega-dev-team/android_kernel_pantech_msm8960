@@ -230,6 +230,17 @@ static struct msm_pcm_routing_fdai_data
 	{0, INVALID_SESSION, {NULL, NULL} } },
 };
 
+#ifdef CONFIG_PANTECH_SND_QSOUND 
+int* get_fe_dsp_stream_ids(int index) {
+	if (index < 0 || index >= MSM_FRONTEND_DAI_MM_SIZE) return NULL;
+	return &fe_dai_map[index][0].strm_id;
+}
+
+struct msm_pcm_routing_bdai_data* get_be_entry(int index) {
+	if (index < 0 || index >= MSM_BACKEND_DAI_MAX) return NULL;
+	return &msm_bedais[index];
+}
+#endif
 static uint8_t is_be_dai_extproc(int be_dai)
 {
 	if (be_dai == MSM_BACKEND_DAI_EXTPROC_RX ||
