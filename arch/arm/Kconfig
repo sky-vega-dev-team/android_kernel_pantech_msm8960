@@ -2467,6 +2467,8 @@ config ARM_CPU_SUSPEND
 
 endmenu
 
+source "arch/arm/hotplug/Kconfig"
+
 source "net/Kconfig"
 
 source "drivers/Kconfig"

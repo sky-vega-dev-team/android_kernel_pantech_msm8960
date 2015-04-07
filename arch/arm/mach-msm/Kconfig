@@ -1654,6 +1654,11 @@ config MSM_CPU_FREQ_MIN
 	default 245760
 
 endif # CPU_FREQ_MSM
+config USERSPACE_VOLTAGE_CONTROL
+	bool "Enable CPU Voltage Table via sysfs for adjustements"
+	default n
+	help
+	  Krait User Votlage Control
 
 config MSM_AVS_HW
 	bool "Enable Adaptive Voltage Scaling (AVS)"
