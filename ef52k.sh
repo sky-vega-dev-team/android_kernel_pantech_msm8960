@@ -26,7 +26,7 @@ export KBUILD_BUILD_HOST=tymnll
 mkdir -p ./obj/KERNEL_OBJ/
 #make O=./obj/KERNEL_OBJ/ 
 make ARCH=arm O=./obj/KERNEL_OBJ/ cm_ef52k_defconfig #Use arch/arm/configs/cm_ef52k_defconfig for CyanogenMod, PAC, Omini rom
-make ARCH=arm O=./obj/KERNEL_OBJ/ 2>&1 | tee kernel_log.txt
+make -j4 ARCH=arm O=./obj/KERNEL_OBJ/ 2>&1 | tee kernel_log.txt
 # Use make -j#
 
 ##############################################################################
