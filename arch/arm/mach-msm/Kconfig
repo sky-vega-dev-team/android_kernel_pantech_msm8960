@@ -1654,6 +1654,19 @@ config MSM_CPU_FREQ_MIN
 	default 245760
 
 endif # CPU_FREQ_MSM
+
+config GPU_OVERCLOCK
+	bool "Enable GPU Overclocking option"
+	default n
+	help
+	  APQ8064 GPU overclocking 
+
+ config CPU_OVERCLOCK
+ 	bool "Enable CPU Overclocking option"
+ 	default n
+	help
+	  APQ8064 CPU overclocking 
+
 config USERSPACE_VOLTAGE_CONTROL
 	bool "Enable CPU Voltage Table via sysfs for adjustements"
 	default n
