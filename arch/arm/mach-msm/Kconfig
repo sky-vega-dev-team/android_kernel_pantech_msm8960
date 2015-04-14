@@ -1655,11 +1655,28 @@ config MSM_CPU_FREQ_MIN
 
 endif # CPU_FREQ_MSM
 
+config MSM_CPUFREQ_LIMITER
+	tristate "MSM CPU frequency limiter"
+	default n
+	help
+	  This driver limits MSM CPU frequency through sysfs file system.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called cpufreq_stats.
+
+	  If in doubt, say N.
+
 config GPU_OVERCLOCK
 	bool "Enable GPU Overclocking option"
 	default n
 	help
-	  APQ8064 GPU overclocking 
+	  APQ8064 GPU overclocking
+
+config LOW_CPUCLOCKS
+	bool "LOW CPU clock support"
+	default y
+	help
+		APQ8064 very low cpu clock
 
  config CPU_OVERCLOCK
  	bool "Enable CPU Overclocking option"

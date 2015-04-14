@@ -13,15 +13,30 @@
 
 //Define for acpuclock-8064.c, acpuclock-krait.c, board-8064-regulator.c, msm_dcvs.c
 #ifdef CONFIG_CPU_OVERCLOCK
+#ifdef CONFIG_LOW_CPUCLOCKS
 #define HFPLL_MIN_VDD		800000//Stock is 850000	/* uV */
-#define HFPLL_MAX_VDD		1350000//stock is 1300000	/* uV */
-#define DCVS_MAX_NUM_FREQS	16//stock is 15	/*Number of cpu clock*/
+#define HFPLL_MAX_VDD		1400000//stock is 1300000	/* uV */
 #else
 #define HFPLL_MIN_VDD		850000
 #define HFPLL_MAX_VDD		1300000
-#define DCVS_MAX_NUM_FREQS	15
 #endif
-//#define FREQ_TABLE_SIZE		35 /*Stock is 35*/
+#endif
+
+//Loạn não :3
+#ifdef CONFIG_CPU_OVERCLOCK
+#define NUM_FREQS 2
+#else
+#define NUM_FREQS 0
+#endif
+
+#ifdef CONFIG_LOW_CPUCLOCKS
+#define FREQ_TABLE_SIZE		(39 + NUM_FREQS)
+#define DCVS_MAX_NUM_FREQS	(18 + NUM_FREQS)
+#else
+#define DCVS_MAX_NUM_FREQS	(15 + NUM_FREQS)
+#define FREQ_TABLE_SIZE		(35 + NUM_FREQS)
+#endif
+
 //#define MAX_VDD_MEM_DIG	1150000 /* uV */
 
 
