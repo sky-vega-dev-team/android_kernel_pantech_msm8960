@@ -23,13 +23,54 @@ export KBUILD_BUILD_HOST=tymnll
 ##############################################################################
 # make zImage
 ##############################################################################
+while :
+do
+echo -n " Clean kernel before build? (y/n) "
+read set
+case $set in 
+	y)	echo "Cleaning..."; rm -R ./obj; make clean && make mrproper; break;;
+
+	n) 	echo "No clean, continue build"; break;;
+	
+	*)	echo "Invalid option";;
+    esac
+done
+clear
 mkdir -p ./obj/KERNEL_OBJ/
-#make O=./obj/KERNEL_OBJ/ 
-make ARCH=arm O=./obj/KERNEL_OBJ/ cm_ef52k_defconfig #Use arch/arm/configs/cm_ef52k_defconfig for CyanogenMod, PAC, Omini rom
+rm ./zImage
+#make O=./obj/KERNEL_OBJ/
+rm ./arch/arm/configs/temp_defconfig
+cp ./arch/arm/configs/cm_ef52_defconfig ./arch/arm/configs/temp_defconfig
+while :
+do
+echo "  1 - IM-A870K"
+echo "  2 - IM-A870S"
+echo "  3 - IM-A870L"
+echo -n " Change your device you want to build kernel: "
+read num
+case $num in 
+	1)	echo "CONFIG_MACH_APQ8064_EF52K=y" >> ./arch/arm/configs/temp_defconfig; break;;
+
+	2) 	echo "CONFIG_MACH_APQ8064_EF52S=y" >> ./arch/arm/configs/temp_defconfig; break;;
+
+	3) 	echo "CONFIG_MACH_APQ8064_EF52L=y" >> ./arch/arm/configs/temp_defconfig; break;;
+	
+	*)	echo "Invalid option";;
+    esac
+done
+clear
+make ARCH=arm O=./obj/KERNEL_OBJ/ temp_defconfig
+
 make -j4 ARCH=arm O=./obj/KERNEL_OBJ/ 2>&1 | tee kernel_log.txt
 # Use make -j#
 
 ##############################################################################
 # Copy Kernel Image
 ##############################################################################
+
 cp -f ./obj/KERNEL_OBJ/arch/arm/boot/zImage .
+if [  -e zImage ]
+then
+  echo "Build succed zImage"
+  exit 0
+fi
