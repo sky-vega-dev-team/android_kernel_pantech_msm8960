@@ -354,8 +354,8 @@ CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 CFLAGS_MODULE   =
 AFLAGS_MODULE   =
 LDFLAGS_MODULE  =
-CFLAGS_KERNEL  = -mcpu=cortex-a15 -mtune=cortex-a15 -marm -mfpu=neon-vfpv4
-AFLAGS_KERNEL  = -mcpu=cortex-a15 -mtune=cortex-a15 -marm -mfpu=neon-vfpv4
+CFLAGS_KERNEL  =
+AFLAGS_KERNEL  = 
 CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
 
 
@@ -373,6 +373,11 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
 		   -fno-delete-null-pointer-checks
+    		   -march=armv7-a -mtune=cortex-a15 \
+		     -fpredictive-commoning -fgcse-after-reload -ftree-vectorize \
+	            -fipa-cp-clone -fsingle-precision-constant -pipe \
+	            -funswitch-loops -floop-interchange \
+	            -floop-strip-mine -floop-block
 #// 20120105, albatros, imei \C1ּҰ\AA\C0\C7 \B0\F8\BF\EB\C0\B8\B7\CE \BB\E7\BF\EB\C0\BB \C0\A7\C7ؼ\AD
 ifeq ($(OEM_PRODUCT_MANUFACTURER),PANTECH)
 LINUXINCLUDE += -I$(srctree)/../vendor/pantech/frameworks/sky_rawdata
@@ -577,7 +582,7 @@ endif # $(dot-config)
 all: vmlinux
 
 ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
-KBUILD_CFLAGS	+= -Os
+KBUILD_CFLAGS	+= -Os $(call cc-disable-warning,maybe-uninitialized,)
 else
 KBUILD_CFLAGS	+= -O2
 endif
