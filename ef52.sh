@@ -71,6 +71,6 @@ make -j4 ARCH=arm O=./obj/KERNEL_OBJ/ 2>&1 | tee kernel_log.txt
 cp -f ./obj/KERNEL_OBJ/arch/arm/boot/zImage .
 if [  -e zImage ]
 then
-  echo "Build succed zImage"
+  echo "Build succed /$(pwd)/zImage"
   exit 0
 fi

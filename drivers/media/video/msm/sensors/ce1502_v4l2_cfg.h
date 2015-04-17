@@ -14,7 +14,7 @@
 #endif
 #define CE1502_EXPOSURE_MAX 4
 #define CE1502_FLICKER_MAX 4
-#define CE1502_ISO_MAX 5
+#define CE1502_ISO_MAX 7
 
 
 /* register configration */
@@ -126,6 +126,8 @@ static const uint8_t ce1502_iso_data[CE1502_ISO_MAX] = {
 	0x03, 	// 200
 	0x04, 	// 400
 	0x05, 	// 800
+	0x06,	// 1600
+	0x07,	// 3200
 };
 
 #endif /* _CE1502_V4L2_CFG_H_ */
