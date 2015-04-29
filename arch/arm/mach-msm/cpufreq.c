@@ -129,6 +129,8 @@ static void set_cpu_work(struct work_struct *work)
 	complete(&cpu_work->complete);
 }
 
+unsigned int smooth_level = 99;
+
 static int msm_cpufreq_target(struct cpufreq_policy *policy,
 				unsigned int target_freq,
 				unsigned int relation)
@@ -136,6 +138,7 @@ static int msm_cpufreq_target(struct cpufreq_policy *policy,
 	int ret = -EFAULT;
 	int index;
 	struct cpufreq_frequency_table *table;
+	int i, old_index = INT_MAX;
 
 	struct cpufreq_work_struct *cpu_work = NULL;
 	cpumask_var_t mask;
@@ -184,6 +187,25 @@ static int msm_cpufreq_target(struct cpufreq_policy *policy,
 		INIT_COMPLETION(cpu_work->complete);
 		queue_work_on(policy->cpu, msm_cpufreq_wq, &cpu_work->work);
 		wait_for_completion(&cpu_work->complete);
+	}
+
+//from galaxy s2...
+	if(smooth_level < 12)
+	{
+		for (i = 0; table[i].frequency != CPUFREQ_TABLE_END; i++) {
+			if (table[i].frequency == policy->cur)
+				old_index = table[i].index;
+		}
+		if (old_index != INT_MAX) {
+			//pr_debug("old_index: %d index: %d smooth_level: %d\n", old_index, index, smooth_level);
+			/* Do NOT step up max arm clock directly to reduce power consumption */
+			if (index > smooth_level && old_index < smooth_level)
+			{
+				index = smooth_level;
+				//pr_debug("Smooth level is set to %d\n", smooth_level);
+			}
+		}
+		//else pr_debug("old index not found\n");
 	}
 
 	ret = cpu_work->status;
