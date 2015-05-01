@@ -18,8 +18,8 @@ export ARCH=arm
 export CROSS_COMPILE=~/android/arm-cortex_a15-linux-gnueabihf-linaro_4.9/bin/arm-cortex_a15-linux-gnueabihf-
 #export CROSS_COMPILE=~/android-ndk-r9d/toolchains/arm-linux-androideabi-4.8/prebuilt/linux-x86/bin/arm-linux-androideabi-
 #Export Host name and user build
-export KBUILD_BUILD_USER=lehoang
-export KBUILD_BUILD_HOST=tymnll
+export KBUILD_BUILD_USER=hlf
+export KBUILD_BUILD_HOST=HLF-Latop-Ubuntu64
 ##############################################################################
 # make zImage
 ##############################################################################
