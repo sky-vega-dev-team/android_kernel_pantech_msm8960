@@ -20,6 +20,22 @@
 #include <linux/platform_device.h>
 #include <linux/log2.h>
 
+/* define to enable reboot on very long key hold */
+#define VERY_LONG_HOLD_REBOOT
+
+#ifdef VERY_LONG_HOLD_REBOOT
+#include <mach/system.h>
+#include <linux/mfd/pm8xxx/misc.h>
+#include <linux/mfd/pm8xxx/pm8921.h>
+// Added restart.h include for Vega Iron msm_restart(mode, cmd) at /arch/arm/mach-msm/restart.c
+#include <mach/restart.h>
+#endif
+
+#ifdef CONFIG_PM_DEEPSLEEP
+#include <linux/suspend.h>
+#include <linux/wakelock.h>
+#endif
+
 #include <linux/mfd/pm8xxx/core.h>
 #include <linux/input/pmic8xxx-pwrkey.h>
 
@@ -40,15 +56,96 @@ struct pmic8xxx_pwrkey {
 	int key_press_irq;
 	int key_release_irq;
 	bool press;
+	struct device *dev;
 	const struct pm8xxx_pwrkey_platform_data *pdata;
+#ifdef CONFIG_PM_DEEPSLEEP
+	struct hrtimer longPress_timer;
+	int expired;
+	struct wake_lock wake_lock;
+#endif
+#ifdef VERY_LONG_HOLD_REBOOT
+	struct hrtimer very_longPress_timer;
+#endif
 };
+
+#ifdef CONFIG_PM_DEEPSLEEP
+
+static enum hrtimer_restart longPress_timer_callback(struct hrtimer *timer)
+{
+	struct pmic8xxx_pwrkey *pwrkey  =
+		container_of(timer, struct pmic8xxx_pwrkey, longPress_timer);
+
+	pwrkey->expired = 1;
+	input_report_key(pwrkey->pwr, KEY_POWER, 1);
+	input_sync(pwrkey->pwr);
+
+	return HRTIMER_NORESTART;
+
+}
+#endif
+
+#ifdef VERY_LONG_HOLD_REBOOT
+static enum hrtimer_restart very_longPress_timer_callback(struct hrtimer *timer)
+{
+	pr_info("Power key held down for 7 seconds; REBOOTING.");
+
+	// If you have error, you MUST modify this code
+	msm_restart(0, 0);
+
+	while (1) {
+		pr_info("Power key held down for 7 seconds; waiting for REBOOT.");
+	}
+
+	return HRTIMER_NORESTART;
+}
+#endif
+
+static void dump_reg(struct pmic8xxx_pwrkey *pwrkey, bool from)
+{
+	int press, release;
+
+	pr_info("%s: from = %s\n", __func__, from ? "press" : "release");
+	press = pm8xxx_read_irq_stat(pwrkey->dev->parent,
+				     pwrkey->key_press_irq);
+	release = pm8xxx_read_irq_stat(pwrkey->dev->parent,
+				       pwrkey->key_release_irq);
+	pr_info("%s: press RT = %d, release RT = %d\n", __func__,
+		press, release);
+}
 
 static irqreturn_t pwrkey_press_irq(int irq, void *_pwrkey)
 {
 	struct pmic8xxx_pwrkey *pwrkey = _pwrkey;
 
+#ifdef VERY_LONG_HOLD_REBOOT
+	struct timespec uptime;
+
+	do_posix_clock_monotonic_gettime(&uptime);
+
+	if (uptime.tv_sec > 50 && pwrkey->press == false) {
+		// FIXME Here you can set timer period
+		hrtimer_start(&pwrkey->very_longPress_timer,
+				ktime_set(7, 0), HRTIMER_MODE_REL);
+	}
+#endif
+
+	pr_info("%s: Enter %s\n", __func__, __func__);
+	dump_reg(pwrkey, true);
+
+#ifdef CONFIG_PM_DEEPSLEEP
+
+	if (get_deepsleep_mode() && pwrkey->press == false) {
+		pwrkey->expired = 0;
+		hrtimer_start(&pwrkey->longPress_timer,
+					ktime_set(2, 0), HRTIMER_MODE_REL);
+		wake_lock_timeout(&pwrkey->wake_lock, 2*HZ+5);
+	} else
+#endif
+	{
 	if (pwrkey->press == true) {
 		pwrkey->press = false;
+		pr_info("%s: Relese-before-press\n",__func__);
+		pr_info("%s: Leave %s\n", __func__, __func__);
 		return IRQ_HANDLED;
 	} else {
 		pwrkey->press = true;
@@ -60,6 +157,8 @@ static irqreturn_t pwrkey_press_irq(int irq, void *_pwrkey)
 	pantech_force_dump_key(KEY_POWER, 1);
 #endif
 
+	}
+	pr_info("%s: Leave %s\n", __func__, __func__);
 	return IRQ_HANDLED;
 }
 
@@ -67,7 +166,30 @@ static irqreturn_t pwrkey_release_irq(int irq, void *_pwrkey)
 {
 	struct pmic8xxx_pwrkey *pwrkey = _pwrkey;
 
+	pr_info("%s: Enter %s\n", __func__, __func__);
+	dump_reg(pwrkey, false);
+
+#ifdef VERY_LONG_HOLD_REBOOT
+	if (pwrkey->press == true)
+	hrtimer_cancel(&pwrkey->very_longPress_timer);
+#endif
+
+#ifdef CONFIG_PM_DEEPSLEEP
+	if (get_deepsleep_mode() && pwrkey->press == true) {
+		hrtimer_cancel(&pwrkey->longPress_timer);
+		if (pwrkey->expired == 1) {
+			pwrkey->expired = 0;
+
+			input_report_key(pwrkey->pwr, KEY_POWER, 0);
+			input_sync(pwrkey->pwr);
+		}
+		wake_lock_timeout(&pwrkey->wake_lock, 5);
+	} else
+#endif
+	{
+
 	if (pwrkey->press == false) {
+		pr_info("%s: Relese-before-press\n",__func__);
 		input_report_key(pwrkey->pwr, KEY_POWER, 1);
 		input_sync(pwrkey->pwr);
 		pwrkey->press = true;
@@ -80,6 +202,8 @@ static irqreturn_t pwrkey_release_irq(int irq, void *_pwrkey)
 #ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
 	pantech_force_dump_key(KEY_POWER, 0);
 #endif
+	}
+	pr_info("%s: Leave %s\n", __func__, __func__);
 
 	return IRQ_HANDLED;
 }
@@ -187,6 +311,8 @@ static int __devinit pmic8xxx_pwrkey_probe(struct platform_device *pdev)
 	pwrkey->key_press_irq = key_press_irq;
 	pwrkey->key_release_irq = key_release_irq;
 	pwrkey->pwr = pwr;
+	pwrkey->press = false;
+	pwrkey->dev = &pdev->dev;
 
 	platform_set_drvdata(pdev, pwrkey);
 
@@ -220,6 +346,25 @@ static int __devinit pmic8xxx_pwrkey_probe(struct platform_device *pdev)
 		goto free_press_irq;
 	}
 
+#ifdef VERY_LONG_HOLD_REBOOT
+	hrtimer_init(&(pwrkey->very_longPress_timer),
+			CLOCK_MONOTONIC,
+			HRTIMER_MODE_REL);
+
+	(pwrkey->very_longPress_timer).function =
+		very_longPress_timer_callback;
+#endif
+
+#ifdef CONFIG_PM_DEEPSLEEP
+
+	hrtimer_init(&(pwrkey->longPress_timer),
+			CLOCK_MONOTONIC,
+			HRTIMER_MODE_REL);
+
+	(pwrkey->longPress_timer).function = longPress_timer_callback;
+	wake_lock_init(&pwrkey->wake_lock, WAKE_LOCK_SUSPEND, "pwrkey");
+#endif
+
 	device_init_wakeup(&pdev->dev, pdata->wakeup);
 
 	return 0;
@@ -245,6 +390,10 @@ static int __devexit pmic8xxx_pwrkey_remove(struct platform_device *pdev)
 
 	device_init_wakeup(&pdev->dev, 0);
 
+#ifdef CONFIG_PM_DEEPSLEEP
+	wake_lock_destroy(&pwrkey->wake_lock);
+#endif
+
 	free_irq(key_press_irq, pwrkey);
 	free_irq(key_release_irq, pwrkey);
 	input_unregister_device(pwrkey->pwr);
@@ -264,12 +413,17 @@ static struct platform_driver pmic8xxx_pwrkey_driver = {
 	},
 };
 
-static int __devinit pmic8xxx_pwrkey_init(void)
+static int __init pmic8xxx_pwrkey_init(void)
 {
 	return platform_driver_register(&pmic8xxx_pwrkey_driver);
 }
+module_init(pmic8xxx_pwrkey_init);
 
-subsys_initcall(pmic8xxx_pwrkey_init);
+static void __exit pmic8xxx_pwrkey_exit(void)
+{
+	platform_driver_unregister(&pmic8xxx_pwrkey_driver);
+}
+module_exit(pmic8xxx_pwrkey_exit);
 
 MODULE_ALIAS("platform:pmic8xxx_pwrkey");
 MODULE_DESCRIPTION("PMIC8XXX Power Key driver");
