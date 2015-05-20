@@ -399,3 +399,11 @@ obj-$(CONFIG_MSM_CPUFREQ_LIMITER) += cpufreq_limit.o
 
 obj-$(CONFIG_ARCH_RANDOM) += early_random.o
 obj-$(CONFIG_PANTECH_ERR_CRASH_LOGGING) += pantech_sys.o pantech_restart.o pantech_apanic.o pantech_debug.o
+
+ifdef CONFIG_MACH_MSM8960_MAKO_STRICT_ALIASING
+CFLAGS_bam_dmux.o := -fno-strict-aliasing
+CFLAGS_ipc_router_smd_xprt.o := -fno-strict-aliasing
+CFLAGS_ipc_router.o := -fno-strict-aliasing
+CFLAGS_ipc_socket.o := -fno-strict-aliasing
+CFLAGS_rpm_log.o := -fno-strict-aliasing
+endif
