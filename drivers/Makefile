@@ -143,6 +143,7 @@ obj-$(CONFIG_MOBICORE_SUPPORT)  += gud/
 
 obj-$(CONFIG_SKY_DMB)		+= dmb/
 obj-$(CONFIG_CORESIGHT)		+= coresight/
+obj-$(CONFIG_ESOC)		+= esoc/
 
 #sensor_class
 obj-$(CONFIG_SENSORS)		+= sensors/
