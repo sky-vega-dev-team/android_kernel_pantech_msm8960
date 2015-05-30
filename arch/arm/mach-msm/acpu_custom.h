@@ -12,14 +12,12 @@
 #define __ARCH_ARM_MACH_MSM_ACPU_CUSTOM_H
 
 //Define for acpuclock-8064.c, acpuclock-krait.c, board-8064-regulator.c, msm_dcvs.c
-#ifdef CONFIG_CPU_OVERCLOCK
-#ifdef CONFIG_LOW_CPUCLOCKS
+#if defined(CONFIG_CPU_OVERCLOCK) || defined(CONFIG_LOW_CPUCLOCKS)
 #define HFPLL_MIN_VDD		800000//Stock is 850000	/* uV */
 #define HFPLL_MAX_VDD		1400000//stock is 1300000	/* uV */
 #else
 #define HFPLL_MIN_VDD		850000
 #define HFPLL_MAX_VDD		1300000
-#endif
 #endif
 
 //Loạn não :3
