@@ -151,3 +151,5 @@ obj-$(CONFIG_SENSORS)		+= sensors/
 #avclog
 obj-$(CONFIG_PANTECH_SELINUX_DENIAL_LOG)       += avclog/
 
+#extfat
+obj-y += exfat/
