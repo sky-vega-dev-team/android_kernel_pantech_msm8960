@@ -1100,12 +1100,12 @@ static const int krait_needs_vmin(void)
 		return 0;
 	};
 }
-
+//Change from 1150000 to 750000
 static void krait_apply_vmin(struct acpu_level *tbl)
 {
 	for (; tbl->speed.khz != 0; tbl++) {
-		if (tbl->vdd_core < 1150000)
-			tbl->vdd_core = 1150000;
+		if (tbl->vdd_core < 750000)
+			tbl->vdd_core = 750000;
 		tbl->avsdscr_setting = 0;
 	}
 }
