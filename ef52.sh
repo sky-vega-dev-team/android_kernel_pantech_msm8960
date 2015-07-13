@@ -61,7 +61,7 @@ done
 clear
 make ARCH=arm O=./obj/KERNEL_OBJ/ temp_defconfig
 
-make -j4 ARCH=arm O=./obj/KERNEL_OBJ/ 2>&1 | tee kernel_log.txt
+make -j9 ARCH=arm O=./obj/KERNEL_OBJ/ 2>&1 | tee kernel_log.txt
 # Use make -j#
 
 ##############################################################################
