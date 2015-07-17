@@ -1674,7 +1674,7 @@ config GPU_OVERCLOCK
 
 config LOW_CPUCLOCKS
 	bool "LOW CPU clock support"
-	default y
+	default n
 	help
 		APQ8064 very low cpu clock
 
