@@ -16,6 +16,7 @@ export ARCH=arm
 #Patch to toolchain
 #export PATH=$(pwd)/../../../../arm-eabi-4.6/bin:$PATH
 export CROSS_COMPILE=~/android/arm-cortex_a15-linux-gnueabihf-linaro_4.9/bin/arm-cortex_a15-linux-gnueabihf-
+
 #export CROSS_COMPILE=~/android/mokee/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi-
 #Export Host name and user build
 #export KBUILD_BUILD_USER=hl
@@ -62,7 +63,17 @@ clear
 make ARCH=arm O=./obj/KERNEL_OBJ/ temp_defconfig
 
 make -j9 ARCH=arm O=./obj/KERNEL_OBJ/ 2>&1 | tee kernel_log.txt
+make -j9 ARCH=arm INSTALL_MOD_PATH=$(pwd)/obj/KERNEL_OBJ O=./obj/KERNEL_OBJ/ modules_install
 # Use make -j#
+#Strip modules
+    mkdir $(pwd)/obj/KERNEL_OBJ/modules
+    mdpath=`find $(pwd)/obj/KERNEL_OBJ/lib/modules -type f -name modules.order`;
+    if [ "$mdpath" != "" ];then
+        mpath=`dirname $mdpath`;
+        ko=`find $mpath/kernel -type f -name *.ko`;
+        for i in $ko; do "$CROSS_COMPILE"strip --strip-unneeded $i;
+        mv $i $(pwd)/obj/KERNEL_OBJ/modules/; done;
+    fi
 
 ##############################################################################
 # Copy Kernel Image
