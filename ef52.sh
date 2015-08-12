@@ -15,9 +15,9 @@
 export ARCH=arm
 #Patch to toolchain
 #export PATH=$(pwd)/../../../../arm-eabi-4.6/bin:$PATH
-export CROSS_COMPILE=~/android/arm-cortex_a15-linux-gnueabihf-linaro_4.9/bin/arm-cortex_a15-linux-gnueabihf-
+#export CROSS_COMPILE=~/android/arm-cortex_a15-linux-gnueabihf-linaro_4.9/bin/arm-cortex_a15-linux-gnueabihf-
 
-#export CROSS_COMPILE=~/android/mokee/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi-
+export CROSS_COMPILE=~/android/AICP/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi-
 #Export Host name and user build
 #export KBUILD_BUILD_USER=hl
 #export KBUILD_BUILD_HOST=HL-G480
