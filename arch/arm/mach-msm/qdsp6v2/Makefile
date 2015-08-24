@@ -27,7 +27,7 @@ obj-$(CONFIG_MSM_QDSP6V2_CODECS)  += audio_mp3.o audio_amrnb.o audio_amrwb.o aud
 obj-$(CONFIG_MSM_ADSP_LOADER) += adsp-loader.o
 obj-$(CONFIG_MSM_ULTRASOUND) += ultrasound/
 
-ifdef CONFIG_MACH_MSM8960_MAKO_STRICT_ALIASING
+ifdef CONFIG_MACH_MSM8960_EF52_STRICT_ALIASING
 CFLAGS_audio_acdb.o := -fno-strict-aliasing
 endif
 

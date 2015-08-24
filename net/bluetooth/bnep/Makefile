@@ -6,7 +6,7 @@ obj-$(CONFIG_BT_BNEP) += bnep.o
 
 bnep-objs := core.o sock.o netdev.o
 
-ifdef CONFIG_MACH_MSM8960_MAKO_STRICT_ALIASING
+ifdef CONFIG_MACH_MSM8960_EF52_STRICT_ALIASING
 CFLAGS_core.o := -fno-strict-aliasing
 CFLAGS_sock.o := -fno-strict-aliasing
 CFLAGS_netdev.o := -fno-strict-aliasing

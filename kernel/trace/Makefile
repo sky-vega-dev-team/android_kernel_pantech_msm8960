@@ -65,7 +65,7 @@ endif
 
 libftrace-y := ftrace.o
 
-ifdef CONFIG_MACH_MSM8960_MAKO_STRICT_ALIASING
+ifdef CONFIG_MACH_MSM8960_EF52_STRICT_ALIASING
 CFLAGS_ring_buffer.o := -fno-strict-aliasing
 endif
 

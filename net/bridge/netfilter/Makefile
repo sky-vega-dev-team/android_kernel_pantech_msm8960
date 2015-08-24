@@ -33,6 +33,6 @@ obj-$(CONFIG_BRIDGE_EBT_LOG) += ebt_log.o
 obj-$(CONFIG_BRIDGE_EBT_ULOG) += ebt_ulog.o
 obj-$(CONFIG_BRIDGE_EBT_NFLOG) += ebt_nflog.o
 
-ifdef CONFIG_MACH_MSM8960_MAKO_STRICT_ALIASING
+ifdef CONFIG_MACH_MSM8960_EF52_STRICT_ALIASING
 CFLAGS_KERNEL := -fno-strict-aliasing
 endif

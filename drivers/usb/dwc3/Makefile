@@ -49,7 +49,7 @@ ifneq ($(CONFIG_PCI),)
 	obj-$(CONFIG_USB_DWC3)		+= dwc3-pci.o
 endif
 
-ifdef CONFIG_MACH_MSM8960_MAKO_STRICT_ALIASING
+ifdef CONFIG_MACH_MSM8960_EF52_STRICT_ALIASING
 CFLAGS_host.o := -fno-strict-aliasing
 CFLAGS_dwc3_otg.o := -fno-strict-aliasing
 endif

@@ -97,7 +97,7 @@ obj-$(CONFIG_CRYPTO_USER_API_SKCIPHER) += algif_skcipher.o
 obj-$(CONFIG_XOR_BLOCKS) += xor.o
 obj-$(CONFIG_ASYNC_CORE) += async_tx/
 
-ifdef CONFIG_MACH_MSM8960_MAKO_STRICT_ALIASING
+ifdef CONFIG_MACH_MSM8960_EF52_STRICT_ALIASING
 CFLAGS_algapi.o := -fno-strict-aliasing
 CFLAGS_aead.o := -fno-strict-aliasing
 CFLAGS_ablkcipher.o := -fno-strict-aliasing

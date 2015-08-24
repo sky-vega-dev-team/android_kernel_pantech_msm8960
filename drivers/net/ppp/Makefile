@@ -14,7 +14,7 @@ obj-$(CONFIG_PPTP) += pppox.o pptp.o
 obj-$(CONFIG_PPPOLAC) += pppox.o pppolac.o
 obj-$(CONFIG_PPPOPNS) += pppox.o pppopns.o
 
-ifdef CONFIG_MACH_MSM8960_MAKO_STRICT_ALIASING
+ifdef CONFIG_MACH_MSM8960_EF52_STRICT_ALIASING
 CFLAGS_ppp_generic.o := -fno-strict-aliasing
 CFLAGS_ppp_async.o := -fno-strict-aliasing
 CFLAGS_ppp_synctty.o := -fno-strict-aliasing

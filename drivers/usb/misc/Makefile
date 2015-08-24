@@ -36,7 +36,7 @@ obj-$(CONFIG_USB_QCOM_MDM_BRIDGE) 	+= mdm_bridge.o
 obj-$(CONFIG_USB_QCOM_KS_BRIDGE)	+= ks_bridge.o
 obj-$(CONFIG_USB_QCOM_IPC_BRIDGE)	+= ipc_bridge.o
 
-ifdef CONFIG_MACH_MSM8960_MAKO_STRICT_ALIASING
+ifdef CONFIG_MACH_MSM8960_EF52_STRICT_ALIASING
 CFLAGS_mdm_ctrl_bridge.o := -fno-strict-aliasing
 CFLAGS_mdm_data_bridge.o := -fno-strict-aliasing
 endif

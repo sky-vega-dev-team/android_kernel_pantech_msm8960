@@ -41,6 +41,6 @@ obj-y += addrconf_core.o exthdrs_core.o
 
 obj-$(subst m,y,$(CONFIG_IPV6)) += inet6_hashtables.o
 
-ifdef CONFIG_MACH_MSM8960_MAKO_STRICT_ALIASING
+ifdef CONFIG_MACH_MSM8960_EF52_STRICT_ALIASING
 CFLAGS_KERNEL := -fno-strict-aliasing
 endif

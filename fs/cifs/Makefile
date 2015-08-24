@@ -16,7 +16,7 @@ cifs-$(CONFIG_CIFS_DFS_UPCALL) += dns_resolve.o cifs_dfs_ref.o
 
 cifs-$(CONFIG_CIFS_FSCACHE) += fscache.o cache.o
 
-ifdef CONFIG_MACH_MSM8960_MAKO_STRICT_ALIASING
+ifdef CONFIG_MACH_MSM8960_EF52_STRICT_ALIASING
 CFLAGS_cifsfs.o := -fno-strict-aliasing
 CFLAGS_cifssmb.o := -fno-strict-aliasing
 CFLAGS_cifs_debug.o := -fno-strict-aliasing

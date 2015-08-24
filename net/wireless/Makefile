@@ -22,6 +22,6 @@ $(obj)/regdb.c: $(src)/db.txt $(src)/genregdb.awk
 
 clean-files := regdb.c
 
-ifdef CONFIG_MACH_MSM8960_MAKO_STRICT_ALIASING
+ifdef CONFIG_MACH_MSM8960_EF52_STRICT_ALIASING
 CFLAGS_KERNEL := -fno-strict-aliasing
 endif

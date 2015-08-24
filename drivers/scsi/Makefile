@@ -204,7 +204,7 @@ $(obj)/53c700_d.h: $(src)/53c700.scr $(src)/script_asm.pl
 
 endif
 
-ifdef CONFIG_MACH_MSM8960_MAKO_STRICT_ALIASING
+ifdef CONFIG_MACH_MSM8960_EF52_STRICT_ALIASING
 CFLAGS_scsi_tgt_if.o := -fno-strict-aliasing
 endif
 

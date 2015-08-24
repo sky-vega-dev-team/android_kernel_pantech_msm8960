@@ -71,7 +71,7 @@ obj-$(CONFIG_USB_CDC_PHONET)   += usb/
 
 obj-$(CONFIG_HYPERV_NET) += hyperv/
 
-ifdef CONFIG_MACH_MSM8960_MAKO_STRICT_ALIASING
+ifdef CONFIG_MACH_MSM8960_EF52_STRICT_ALIASING
 CFLAGS_mii.o := -fno-strict-aliasing
 CFLAGS_Space.o := -fno-strict-aliasing
 CFLAGS_loopback.o := -fno-strict-aliasing
