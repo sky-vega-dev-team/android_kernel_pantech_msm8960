@@ -332,7 +332,6 @@ AS		= $(CROSS_COMPILE)as
 LD		= $(CROSS_COMPILE)ld
 ifndef SM_KERNEL_NAME
 REAL_CC		= $(CROSS_COMPILE)gcc
-CPP		= $(CC) -E
 endif
 AR		= $(CROSS_COMPILE)ar
 NM		= $(CROSS_COMPILE)nm
@@ -380,7 +379,7 @@ CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
 
 # Handle kernel CC flags by importing vendor/sm strings
 ifdef SM_KERNEL_NAME
-  CONFIG_CROSS_COMPILE=arm-eabi-
+export CONFIG_CROSS_COMPILE := arm-eabi-
   USE_GCC = $(CROSS_COMPILE_NAME)gcc-$(SM_KERNEL_NAME)
   CC = $(USE_GCC)
 else
@@ -442,9 +441,8 @@ endif
 # Add everything to CC at the end
 CC += $(SABERMOD_KERNEL_FLAGS) -marm
 # end The SaberMod Project additions
-ifndef SM_KERNEL_NAME
+
 CPP = $(CC) -E
-endif
 
 # Use LINUXINCLUDE when you must reference the include/ directory.
 # Needed to be compatible with the O= option
