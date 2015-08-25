@@ -376,11 +376,71 @@ CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
 # limitations under the License.
 #
 
-
-# Strict aliasing for ef52 if enabled in the defconfig
-ifeq ($(strip $(CONFIG_MACH_MSM8960_EF52_STRICT_ALIASING)),y)
-    CC += $(KERNEL_STRICT_FLAGS)
+# Handle kernel CC flags by importing vendor/sm strings
+ifdef SM_KERNEL_NAME
+  USE_GCC = $(CROSS_COMPILE_NAME)gcc-$(SM_KERNEL_NAME)
+  CC = $(USE_GCC)
+else
+  CC = $(CROSS_COMPILE)gcc
 endif
+
+# Extra flags
+ifdef SABERMOD_KERNEL_FLAGS
+  ifdef EXTRA_SABERMOD_GCC_VECTORIZE
+    SABERMOD_KERNEL_FLAGS += $(EXTRA_SABERMOD_GCC_VECTORIZE)
+  endif
+  ifdef EXTRA_SABERMOD_GCC
+    SABERMOD_KERNEL_FLAGS += $(EXTRA_SABERMOD_GCC)
+  endif
+else
+  ifdef EXTRA_SABERMOD_GCC_VECTORIZE
+    SABERMOD_KERNEL_FLAGS := $(EXTRA_SABERMOD_GCC_VECTORIZE)
+  endif
+  ifdef EXTRA_SABERMOD_GCC
+    SABERMOD_KERNEL_FLAGS := $(EXTRA_SABERMOD_GCC)
+  endif
+endif
+
+ifdef SABERMOD_KERNEL_FLAGS
+  ifdef kernel_arch_variant_cflags
+    SABERMOD_KERNEL_FLAGS += $(kernel_arch_variant_cflags)
+  endif
+else
+  ifdef kernel_arch_variant_cflags
+    SABERMOD_KERNEL_FLAGS := $(kernel_arch_variant_cflags)
+  endif
+endif
+
+# Strict aliasing for mako if enabled in the defconfig
+ifeq ($(strip $(CONFIG_MACH_MSM8960_EF52_STRICT_ALIASING)),y)
+  ifdef SABERMOD_KERNEL_FLAGS
+    SABERMOD_KERNEL_FLAGS += $(KERNEL_STRICT_FLAGS)
+  else
+    SABERMOD_KERNEL_FLAGS := $(KERNEL_STRICT_FLAGS)
+  endif
+endif
+
+# Memory leak detector sanitizer
+ifdef SABERMOD_KERNEL_FLAGS
+  SABERMOD_KERNEL_FLAGS += -fsanitize=leak
+else
+  SABERMOD_KERNEL_FLAGS := -fsanitize=leak
+endif
+
+ifdef GRAPHITE_KERNEL_FLAGS
+  SABERMOD_KERNEL_FLAGS += $(GRAPHITE_KERNEL_FLAGS)
+  ifneq ($(filter -floop-parallelize-all -ftree-parallelize-loops=% -fopenmp,$(SABERMOD_KERNEL_FLAGS)),)
+    SABERMOD_KERNEL_FLAGS += \
+      -L $(TARGET_ARCH_LIB_PATH)/gcc/arm-linux-androideabi/$(TARGET_SM_AND).x-sabermod/armv7-a \
+      -lgomp -lgcc
+  endif
+endif
+
+# Add everything to CC at the end
+CC += $(SABERMOD_KERNEL_FLAGS) -marm
+# end The SaberMod Project additions
+
+CPP = $(CC) -E
 
 # Use LINUXINCLUDE when you must reference the include/ directory.
 # Needed to be compatible with the O= option
