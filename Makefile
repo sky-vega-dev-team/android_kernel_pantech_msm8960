@@ -330,8 +330,10 @@ include $(srctree)/scripts/Kbuild.include
 
 AS		= $(CROSS_COMPILE)as
 LD		= $(CROSS_COMPILE)ld
+ifndef SM_KERNEL_NAME
 REAL_CC		= $(CROSS_COMPILE)gcc
 CPP		= $(CC) -E
+endif
 AR		= $(CROSS_COMPILE)ar
 NM		= $(CROSS_COMPILE)nm
 STRIP		= $(CROSS_COMPILE)strip
@@ -439,6 +441,9 @@ endif
 # Add everything to CC at the end
 CC += $(SABERMOD_KERNEL_FLAGS) -marm
 # end The SaberMod Project additions
+ifndef SM_KERNEL_NAME
+CPP = $(CC) -E
+endif
 
 # Use LINUXINCLUDE when you must reference the include/ directory.
 # Needed to be compatible with the O= option
