@@ -377,31 +377,7 @@ CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
 # limitations under the License.
 #
 
-# Handle kernel CC flags by importing vendor/sm strings
-ifdef SM_KERNEL_NAME
-export CONFIG_CROSS_COMPILE := arm-eabi-
-  USE_GCC = $(CROSS_COMPILE_NAME)gcc-$(SM_KERNEL_NAME)
-  CC = $(USE_GCC)
-else
   CC = $(CROSS_COMPILE)gcc
-endif
-
-# Extra flags
-ifdef SABERMOD_KERNEL_FLAGS
-  ifdef EXTRA_SABERMOD_GCC_VECTORIZE
-    SABERMOD_KERNEL_FLAGS += $(EXTRA_SABERMOD_GCC_VECTORIZE)
-  endif
-  ifdef EXTRA_SABERMOD_GCC
-    SABERMOD_KERNEL_FLAGS += $(EXTRA_SABERMOD_GCC)
-  endif
-else
-  ifdef EXTRA_SABERMOD_GCC_VECTORIZE
-    SABERMOD_KERNEL_FLAGS := $(EXTRA_SABERMOD_GCC_VECTORIZE)
-  endif
-  ifdef EXTRA_SABERMOD_GCC
-    SABERMOD_KERNEL_FLAGS := $(EXTRA_SABERMOD_GCC)
-  endif
-endif
 
 ifdef SABERMOD_KERNEL_FLAGS
   ifdef kernel_arch_variant_cflags
@@ -669,7 +645,7 @@ all: vmlinux
 ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS	+= -Os $(call cc-disable-warning,maybe-uninitialized,)
 else
-KBUILD_CFLAGS	+= -O2
+KBUILD_CFLAGS	+= -O3
 endif
 
 include $(srctree)/arch/$(SRCARCH)/Makefile
