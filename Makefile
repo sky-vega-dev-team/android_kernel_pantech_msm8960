@@ -380,8 +380,8 @@ CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
 # Handle kernel CC flags by importing vendor/sm strings
 ifdef SM_KERNEL_NAME
 export CONFIG_CROSS_COMPILE := arm-eabi-
-#  USE_GCC = $(CROSS_COMPILE_NAME)gcc-$(SM_KERNEL_NAME)
-  CC = $(CROSS_COMPILE)gcc-$(SM_KERNEL_NAME)
+  USE_GCC = $(CROSS_COMPILE_NAME)gcc-$(SM_KERNEL_NAME)
+  CC = $(USE_GCC)
   SABERMOD_KERNEL_FLAGS += -O3
 else
   CC = $(CROSS_COMPILE)gcc
