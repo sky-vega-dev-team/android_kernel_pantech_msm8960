@@ -787,8 +787,6 @@ static inline int avc_operation_audit(u32 ssid, u32 tsid, u16 tclass,
 			requested, avd, od, cmd, result, &denied);
 	if (likely(!audited))
 		return 0;
-	return slow_avc_audit(ssid, tsid, tclass, requested,
-			      audited, denied, result, ad, 0);
 }
 
 /**
