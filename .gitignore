@@ -88,3 +88,4 @@ obj/*
 /zImage
 /kernel_log.txt
 /arch/arm/configs/temp_defconfig
+/ef52.sh
