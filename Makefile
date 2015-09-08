@@ -345,7 +345,7 @@ DEPMOD		= /sbin/depmod
 KALLSYMS	= scripts/kallsyms
 PERL		= perl
 CHECK		= sparse
-ifdef SM_KERNEL_NAME
+ifndef SM_KERNEL_NAME
 # Use the wrapper for the compiler.  This wrapper scans for new
 # warnings and causes the build to stop upon encountering them.
 CC		= $(srctree)/scripts/gcc-wrapper.py $(REAL_CC)
@@ -376,7 +376,7 @@ CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+ifdef TARGET_SM_KERNEL
 # Handle kernel CC flags by importing vendor/sm strings
 ifdef SM_KERNEL_NAME
 export CONFIG_CROSS_COMPILE := arm-eabi-
@@ -421,7 +421,7 @@ ifdef GRAPHITE_KERNEL_FLAGS
       -lgomp -lgcc
   endif
 endif
-
+endif
 # Add everything to CC at the end
 CC += $(SABERMOD_KERNEL_FLAGS) -marm
 # end The SaberMod Project additions
