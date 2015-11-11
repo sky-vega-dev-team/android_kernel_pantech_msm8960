@@ -1467,7 +1467,6 @@ static int sip_help_tcp(struct sk_buff *skb, unsigned int protoff,
 		end += strlen("\r\n\r\n") + clen;
 
 		msglen = origlen = end - dptr;
-/* Block original
 		if (msglen > datalen)
 			return NF_ACCEPT;
 
