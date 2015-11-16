@@ -55,13 +55,6 @@ config MSM_KGSL_PSTMRTMDMP_RB_HEX
 	  Use hex version for the ring-buffer in the post-mortem dump, instead
 	  of the human readable version.
 
-config MSM_KGSL_SIMPLE_GOV
-	bool "Simple KGSL GPU govenor for Qualcomm Adreno xxx devices"
-	default n
-	depends on MSM_KGSL
-	---help---
-	  A simple KGSL GPU govenor for Qualcom Adreno XXX devices
-
 config MSM_KGSL_2D
 	tristate "MSM 2D graphics driver. Required for OpenVG"
 	default y
