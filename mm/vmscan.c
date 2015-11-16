@@ -97,6 +97,9 @@ struct scan_control {
 
 	int order;
 
+	/* Scan (total_size >> priority) pages at once */
+	int priority;
+
 	/*
 	 * Intend to reclaim enough continuous memory rather than reclaim
 	 * enough amount of memory. i.e, mode for high order allocation.
@@ -2193,6 +2196,7 @@ static void shrink_zone(int priority, struct zone *zone,
 		memcg = mem_cgroup_iter(root, memcg, &reclaim);
 	} while (memcg);
 
+
 	vmpressure(sc->gfp_mask, sc->target_mem_cgroup,
 		   sc->nr_scanned - nr_scanned,
 		   sc->nr_reclaimed - nr_reclaimed);
@@ -2375,7 +2379,7 @@ static unsigned long do_try_to_free_pages(struct zonelist *zonelist,
 	if (global_reclaim(sc))
 		count_vm_event(ALLOCSTALL);
 
-	do {
+	for (priority = DEF_PRIORITY; priority >= 0; priority--) {
 		vmpressure_prio(sc->gfp_mask, sc->target_mem_cgroup, sc->priority);
 		sc->nr_scanned = 0;
 		if (!priority)
