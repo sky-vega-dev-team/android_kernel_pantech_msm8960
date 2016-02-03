@@ -457,10 +457,12 @@ static int mipi_renesas_lcd_on(struct platform_device *pdev)
 
 //out:
 #ifdef CONFIG_F_SKYDISP_SILENT_BOOT
+#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
     // In case of reset when silentboot mode(doing boot), only when is_silent_boot_mode_n_bl_off == 0, do it.
     // If always do it, display silentboot image eventhough reset occur when backlight off.
     if(is_silent_boot_mode_n_bl_off == 0)
-        pantech_sys_reset_backlight_flag_set(true);	
+        pantech_sys_reset_backlight_flag_set(true);
+#endif
 #endif
 
 	EXIT_FUNC2();
@@ -498,7 +500,9 @@ static int mipi_renesas_lcd_off(struct platform_device *pdev)
 		mutex_unlock(&renesas_state.lcd_mutex);
 
 #ifdef CONFIG_F_SKYDISP_SILENT_BOOT
+#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
         pantech_sys_reset_backlight_flag_set(false);	
+#endif
         is_silent_boot_mode_n_bl_off = 0;
 #endif
 	}
@@ -832,6 +836,7 @@ static int __init mipi_renesas_lcd_init(void)
 #endif
 
 #ifdef CONFIG_F_SKYDISP_SILENT_BOOT
+#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
     is_silent_boot_mode = pantech_sys_rst_is_silent_boot_mode();
     is_backlight_on_before_reset = pantech_sys_reset_backlight_flag_get();	
     
@@ -842,6 +847,7 @@ static int __init mipi_renesas_lcd_init(void)
     }
     else
         printk("This time is NOT silent boot mode.\n");
+#endif
 #endif        
 
     renesas_state.disp_powered_up = true;

@@ -15,7 +15,7 @@ menu "CUST PANTECH CONFIG SECTION"
 config PANTECH
 	bool "PANTECH Common Configuration"
 	default y
-	select PANTECH_ERR_CRASH_LOGGING
+#	select PANTECH_ERR_CRASH_LOGGING
 	select PANTECH_FS_AUTO_REPAIR
 	select PANTECH_PMIC_PWRKEY
 	# JINHO.PARK.LS4.2013.01.10
@@ -368,7 +368,7 @@ config PANTECH_SOC_HW_REVISION_NUMBER
 
 config PANTECH_ERR_CRASH_LOGGING
 	bool
-	default y
+	default n
 
 ################
 # SELECTIVELY ON #
@@ -381,12 +381,12 @@ config QC_ABNORMAL_DEBUG_CODE
 	bool
 	default n
 
-config PANTECH_ERR_CRASH_LOGGING
-	bool
+#config PANTECH_ERR_CRASH_LOGGING
+#  bool
 
 config PANTECH_DEBUG_ON
 	bool
-	default y
+	default n
 	select PANTECH_DEBUG
 
 config PANTECH_DEBUG

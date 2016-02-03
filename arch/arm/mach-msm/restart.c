@@ -278,7 +278,9 @@ void msm_restart(char mode, const char *cmd)
 		} else if (!strncmp(cmd, "autorepair", 10)){
 			__raw_writel(0xDA000012, restart_reason);
 		} else if (!strncmp(cmd, "data_mount_err", 14)){
+#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
 			pantech_sys_reset_reason_set(SYS_RESET_REASON_DATA_MOUNT_ERR);
+#endif
 			panic("EXT4-fs : data partition mount failed. going to run e2fsck\n");
 #endif
 		} else {
