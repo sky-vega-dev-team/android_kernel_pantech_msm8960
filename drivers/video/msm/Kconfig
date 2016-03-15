@@ -99,6 +99,11 @@ config FB_MSM_MDP_NONE
 	---help---
 	  Say Y here if this is mdm platform.
 
+config MDP_DEBUG_FS
+	depends on DEBUG_FS
+	bool "MDP Debug FS"
+	default n
+
 endchoice
 
 config FB_MSM_EBI2
