@@ -67,7 +67,6 @@
  **-------------------------------------------------------------------------------------------------*/
 
 extern pantech_log_header *get_pantech_klog_dump_address(void);
-extern pantech_log_header *get_pantech_logcat_dump_address(void);
 
 /*---------------------------------------------------------------------------------------------------
  ** global / static variable define
@@ -199,10 +198,9 @@ int __init pantech_apanic_init(void)
 {
     int ret;
 
-	pantech_log_header *klog_header, *logcat_log_header;
+	pantech_log_header *klog_header;
 
 	klog_header = get_pantech_klog_dump_address();
-	logcat_log_header = get_pantech_logcat_dump_address();
 
 	if(!crash_buf_header){
 		ret = crash_buf_header_init();
@@ -216,18 +214,6 @@ int __init pantech_apanic_init(void)
 	crash_buf_header->klog_buf_address = klog_header->klog_buf_address;
 	crash_buf_header->klog_end_idx = klog_header->klog_end_idx;
 	crash_buf_header->klog_size = klog_header->klog_size;
-
-	crash_buf_header->mlogcat_buf_address = logcat_log_header->mlogcat_buf_address;
-	crash_buf_header->mlogcat_w_off = logcat_log_header->mlogcat_w_off;
-	crash_buf_header->mlogcat_size = logcat_log_header->mlogcat_size;
-
-	crash_buf_header->slogcat_buf_address = logcat_log_header->slogcat_buf_address;
-	crash_buf_header->slogcat_w_off = logcat_log_header->slogcat_w_off;
-	crash_buf_header->slogcat_size = logcat_log_header->slogcat_size;
-
-	crash_buf_header->rlogcat_buf_address = logcat_log_header->rlogcat_buf_address;
-	crash_buf_header->rlogcat_w_off = logcat_log_header->rlogcat_w_off;
-	crash_buf_header->rlogcat_size = logcat_log_header->rlogcat_size;
 
 	printk("pantech_apanic : pantech_log_header initialized success for write to SMEM\n");
 
