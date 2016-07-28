@@ -1229,6 +1229,31 @@ static int __perf_remove_from_context(void *info)
 	return 0;
 }
 
+#ifdef CONFIG_SMP
+static void perf_retry_remove(struct perf_event *event,
+			      struct remove_event *rep)
+{
+	int up_ret;
+	/*
+	 * CPU was offline. Bring it online so we can
+	 * gracefully exit a perf context.
+	 */
+	up_ret = cpu_up(event->cpu);
+	if (!up_ret)
+		/* Try the remove call once again. */
+		cpu_function_call(event->cpu, __perf_remove_from_context,
+				  rep);
+	else
+		pr_err("Failed to bring up CPU: %d, ret: %d\n",
+		       event->cpu, up_ret);
+}
+#else
+static void perf_retry_remove(struct perf_event *event,
+			      struct remove_event *rep)
+{
+}
+#endif
+
 /*
  * Remove the event from a task's (or a CPU's) list of events.
  *
@@ -1242,10 +1267,11 @@ static int __perf_remove_from_context(void *info)
  * When called from perf_event_exit_task, it's OK because the
  * context has been detached from its task.
  */
-static void perf_remove_from_context(struct perf_event *event, bool detach_group)
+static void __ref perf_remove_from_context(struct perf_event *event, bool detach_group)
 {
 	struct perf_event_context *ctx = event->ctx;
 	struct task_struct *task = ctx->task;
+	int ret;
 	struct remove_event re = {
 		.event = event,
 		.detach_group = detach_group,
@@ -1255,10 +1281,12 @@ static void perf_remove_from_context(struct perf_event *event, bool detach_group
 
 	if (!task) {
 		/*
-		 * Per cpu events are removed via an smp call and
-		 * the removal is always successful.
+		 * Per cpu events are removed via an smp call
 		 */
-		cpu_function_call(event->cpu, __perf_remove_from_context, &re);
+		ret = cpu_function_call(event->cpu, __perf_remove_from_context, &re);
+
+		if (ret == -ENXIO)
+			perf_retry_remove(event, &re);
 		return;
 	}
 
@@ -3014,6 +3042,14 @@ static void put_event(struct perf_event *event)
 
 	if (!atomic_long_dec_and_test(&event->refcount))
 		return;
+
+	/*
+	 * Event can be in state OFF because of a constraint check.
+	 * Change to ACTIVE so that it gets cleaned up correctly.
+	 */
+	if ((event->state == PERF_EVENT_STATE_OFF) &&
+	    event->attr.constraint_duplicate)
+		event->state = PERF_EVENT_STATE_ACTIVE;
 
 	rcu_read_lock();
 	owner = ACCESS_ONCE(event->owner);
