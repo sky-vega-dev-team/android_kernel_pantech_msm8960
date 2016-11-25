@@ -123,27 +123,6 @@ struct snd_compr_codec_caps {
 };
 
 /**
- * @SNDRV_COMPRESS_ENCODER_PADDING: no of samples appended by the encoder at the
- * end of the track
- * @SNDRV_COMPRESS_ENCODER_DELAY: no of samples inserted by the encoder at the
- * beginning of the track
- */
-enum {
-	SNDRV_COMPRESS_ENCODER_PADDING = 1,
-	SNDRV_COMPRESS_ENCODER_DELAY = 2,
-};
-
-/**
- * struct snd_compr_metadata: compressed stream metadata
- * @key: key id
- * @value: key value
- */
-struct snd_compr_metadata {
-	 __u32 key;
-	 __u32 value[8];
-};
-
-/**
  * struct snd_compr_audio_info: compressed input audio information
  * @frame_size: legth of the encoded frame with valid data
  * @reserved: reserved for furture use
