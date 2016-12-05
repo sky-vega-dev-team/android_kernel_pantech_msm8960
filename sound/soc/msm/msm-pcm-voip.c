@@ -695,6 +695,12 @@ static int msm_pcm_playback_copy(struct snd_pcm_substream *substream, int a,
 				ret = copy_from_user(&buf_node->frame,
 							buf, count);
 
+			if (ret) {
+				pr_err("%s: copy from user failed %d\n",
+				       __func__, ret);
+				return -EFAULT;
+			}
+
 #ifdef FEATURE_PANTECH_SND_PCM_KERNEL_DUMP //20120810 jhsong : kernel voip dump
 			voip_write_file("/data/rx_dump_kernel.pcm", &buf_node->frame.voc_pkt, count);
 #endif
