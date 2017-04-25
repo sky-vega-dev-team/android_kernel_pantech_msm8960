@@ -117,7 +117,6 @@ static int parse_options(struct super_block *sb, char *options, int silent,
 			break;
 		/* unknown option */
 		default:
-invalid_option:
 			if (!silent) {
 				printk( KERN_ERR "Unrecognized mount option \"%s\" "
 						"or missing value", p);
