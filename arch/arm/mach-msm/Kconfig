@@ -2680,4 +2680,10 @@ config FORCE_FAST_CHARGE
 		A simple sysfs interface to force adapters that
 		are detected as USB to charge as AC.
 
+config AUTOSMP
+	bool "AutoSMP Hotplug"
+	depends on SMP && HOTPLUG_CPU
+	help
+	  Automatically hotplugs the multiple CPU cores based on
+	  CPU load and suspend state.
 endif
