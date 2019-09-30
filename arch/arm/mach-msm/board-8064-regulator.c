@@ -12,7 +12,7 @@
  */
 
 #include <linux/regulator/pm8xxx-regulator.h>
-#include <acpu_custom.h>
+#include "acpu_custom.h"
 
 #include "board-8064.h"
 

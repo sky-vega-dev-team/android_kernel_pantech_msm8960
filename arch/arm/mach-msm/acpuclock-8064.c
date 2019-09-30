@@ -17,7 +17,7 @@
 #include <mach/rpm-regulator.h>
 #include <mach/msm_bus_board.h>
 #include <mach/msm_bus.h>
-#include <acpu_custom.h>
+#include "acpu_custom.h"
 
 #include "mach/socinfo.h"
 #include "acpuclock.h"

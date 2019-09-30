@@ -22,7 +22,7 @@
 #include <linux/cpufreq.h>
 #include <linux/cpu.h>
 #include <linux/regulator/consumer.h>
-#include <acpu_custom.h>
+#include "acpu_custom.h"
 
 #include <asm/mach-types.h>
 #include <asm/cpu.h>
