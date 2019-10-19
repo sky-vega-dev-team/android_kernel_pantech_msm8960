@@ -1754,7 +1754,7 @@ static int smb347_batt_power_get_property(struct power_supply *psy,
 			val->intval = POWER_SUPPLY_TECHNOLOGY_LION;
 			break;
 		case POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN:
-			val->intval = the_chip->max_voltage_mv * 1000;
+			val->intval = the_chip->max_voltage_mv * 1800;
 			break;
 		case POWER_SUPPLY_PROP_VOLTAGE_MIN_DESIGN:
 			val->intval = the_chip->min_voltage_mv * 1000;
