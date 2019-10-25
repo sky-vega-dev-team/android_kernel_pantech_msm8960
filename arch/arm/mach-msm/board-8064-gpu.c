@@ -258,7 +258,12 @@ static struct kgsl_device_platform_data kgsl_3d0_pdata = {
 	.pwrlevel = {
 #ifdef CONFIG_GPU_OVERCLOCK
 		{
-			.gpu_freq = 450000000,
+			.gpu_freq = 500000000,
+			.bus_freq = 5,
+			.io_fraction = 0,
+		},
+		{
+			.gpu_freq = 433000000,
 			.bus_freq = 4,
 			.io_fraction = 0,
 		},
@@ -270,17 +275,12 @@ static struct kgsl_device_platform_data kgsl_3d0_pdata = {
  		},
 #endif
 		{
-			.gpu_freq = 320000000,
-			.bus_freq = 3,
+			.gpu_freq = 360000000,
+			.bus_freq = 2,
 			.io_fraction = 33,
 		},
 		{
-			.gpu_freq = 200000000,
-			.bus_freq = 2,
-			.io_fraction = 100,
-		},
-		{
-			.gpu_freq = 128000000,
+			.gpu_freq = 192000000,
 			.bus_freq = 1,
 			.io_fraction = 100,
 		},
@@ -320,7 +320,7 @@ void __init apq8064_init_gpu(void)
 	unsigned int version = socinfo_get_version();
 
 	if (cpu_is_apq8064ab())
-		kgsl_3d0_pdata.pwrlevel[0].gpu_freq = 450000000;
+		kgsl_3d0_pdata.pwrlevel[0].gpu_freq = 500000000;
 	if (SOCINFO_VERSION_MAJOR(version) == 2) {
 		kgsl_3d0_pdata.chipid = ADRENO_CHIPID(3, 2, 0, 2);
 	} else {
