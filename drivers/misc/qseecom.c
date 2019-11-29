@@ -1021,6 +1021,10 @@ static int __qseecom_send_cmd_legacy(struct qseecom_dev_handle *data,
 
 static int __validate_send_cmd_inputs(struct qseecom_dev_handle *data,
 				struct qseecom_send_cmd_req *req)
+<<<<<<< HEAD
+=======
+
+>>>>>>> bb4f9126955304d298657a08ea13f49807808d96
 {
 	if (!data || !data->client.ihandle) {
 		pr_err("Client or client handle is not initialized\n");
@@ -1031,9 +1035,10 @@ static int __validate_send_cmd_inputs(struct qseecom_dev_handle *data,
 		pr_err("cmd buffer or response buffer is null\n");
 		return -EINVAL;
 	}
-	if (((uint32_t)req->cmd_req_buf < data->client.user_virt_sb_base) ||
-		((uint32_t)req->cmd_req_buf >= (data->client.user_virt_sb_base +
-					data->client.sb_length))) {
+	if (((uintptr_t)req->cmd_req_buf <
+				data->client.user_virt_sb_base) ||
+		((uintptr_t)req->cmd_req_buf >=
+		(data->client.user_virt_sb_base + data->client.sb_length))) {
 		pr_err("cmd buffer address not within shared bufffer\n");
 		return -EINVAL;
 	}
@@ -1143,7 +1148,10 @@ static int qseecom_send_cmd(struct qseecom_dev_handle *data, void __user *argp)
 	}
 	if (__validate_send_cmd_inputs(data, &req))
 		return -EINVAL;
+<<<<<<< HEAD
 
+=======
+>>>>>>> bb4f9126955304d298657a08ea13f49807808d96
 	if (qseecom.qseos_version == QSEOS_VERSION_14)
 		ret = __qseecom_send_cmd(data, &req);
 	else
@@ -1197,6 +1205,13 @@ static int __qseecom_update_with_phy_addr(
 						req->ifd_data[i].cmd_buf_offset;
 			update = (uint32_t *) field;
 
+			if ((req->cmd_req_len < sizeof(uint32_t)) ||
+				(req->ifd_data[i].cmd_buf_offset >
+				req->cmd_req_len - sizeof(uint32_t))) {
+				pr_err("Invalid offset (req len) 0x%x\n",
+					req->ifd_data[i].cmd_buf_offset);
+				return -EINVAL;
+			}
 			/* Populate the cmd data structure with the phys_addr */
 			ret = ion_phys(qseecom.ion_clnt, ihandle, &pa, &length);
 			if (ret)
