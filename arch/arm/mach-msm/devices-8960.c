@@ -2202,6 +2202,7 @@ struct platform_device msm8960_device_vpe = {
 };
 #endif
 
+#if 0 //[p10367] EF48/49/50 use TDMB TSIF CONFIG. in devices-8064.c
 #define MSM_TSIF0_PHYS       (0x18200000)
 #define MSM_TSIF1_PHYS       (0x18201000)
 #define MSM_TSIF_SIZE        (0x200)
@@ -2306,7 +2307,7 @@ struct platform_device msm_device_tsif[2] = {
 		},
 	}
 };
-
+#endif
 static struct resource resources_ssbi_pmic[] = {
 	{
 		.start  = MSM_PMIC1_SSBI_CMD_PHYS,

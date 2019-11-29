@@ -2357,12 +2357,18 @@ static struct platform_driver mdp_driver = {
 	},
 };
 
+
 static int mdp_fps_level_change(struct platform_device *pdev, u32 fps_level)
 {
 	int ret = 0;
 	ret = panel_next_fps_level_change(pdev, fps_level);
 	return ret;
 }
+
+#ifdef CONFIG_PANTECH_LCD_SHARPNESS_CTRL
+extern unsigned int sharpness_count;
+#endif
+
 static int mdp_off(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -2396,6 +2402,9 @@ static int mdp_off(struct platform_device *pdev)
 	mdp_clk_ctrl(0);
 #ifdef CONFIG_MSM_BUS_SCALING
 	mdp_bus_scale_update_request(0, 0, 0, 0);
+#endif
+#ifdef CONFIG_PANTECH_LCD_SHARPNESS_CTRL
+	sharpness_count = 0;
 #endif
 	pr_debug("%s:-\n", __func__);
 	return ret;

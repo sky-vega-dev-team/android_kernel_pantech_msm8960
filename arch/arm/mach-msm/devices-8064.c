@@ -63,6 +63,9 @@
 #define MSM_UART1DM_PHYS	(MSM_GSBI1_PHYS + 0x10000)
 #define MSM_UART3DM_PHYS	(MSM_GSBI3_PHYS + 0x40000)
 #define MSM_UART4DM_PHYS	(MSM_GSBI4_PHYS + 0x40000)
+#ifdef CONFIG_PANTECH_GSBI5_UART_CONSOLE
+#define MSM_UART5DM_PHYS	(MSM_GSBI5_PHYS + 0x40000)
+#endif
 #define MSM_UART6DM_PHYS	(MSM_GSBI6_PHYS + 0x40000)
 #define MSM_UART7DM_PHYS	(MSM_GSBI7_PHYS + 0x40000)
 
@@ -415,14 +418,38 @@ static struct resource resources_qup_i2c_gsbi4[] = {
 	},
 	{
 		.name	= "i2c_clk",
+#ifdef CONFIG_PANTECH_CAMERA
+#if (defined(CONFIG_MACH_APQ8064_EF51S)||defined(CONFIG_MACH_APQ8064_EF51K)||defined(CONFIG_MACH_APQ8064_EF51L)||defined(CONFIG_MACH_APQ8064_EF52S)||defined(CONFIG_MACH_APQ8064_EF52K)||defined(CONFIG_MACH_APQ8064_EF52L)||defined(CONFIG_MACH_APQ8064_EF52W))
 		.start	= 11,
 		.end	= 11,
+#else
+#if CONFIG_BOARD_VER >= CONFIG_WS10
+		.start	= 11,
+		.end	= 11,
+#else
+		.start	= 13,		
+		.end	= 13,
+#endif
+#endif		
+#endif		
 		.flags	= IORESOURCE_IO,
 	},
 	{
 		.name	= "i2c_sda",
+#ifdef CONFIG_PANTECH_CAMERA
+#if (defined(CONFIG_MACH_APQ8064_EF51S)||defined(CONFIG_MACH_APQ8064_EF51K)||defined(CONFIG_MACH_APQ8064_EF51L)||defined(CONFIG_MACH_APQ8064_EF52S)||defined(CONFIG_MACH_APQ8064_EF52K)||defined(CONFIG_MACH_APQ8064_EF52L)||defined(CONFIG_MACH_APQ8064_EF52W))
 		.start	= 10,
 		.end	= 10,
+#else
+#if CONFIG_BOARD_VER >= CONFIG_WS10
+		.start	= 10,
+		.end	= 10,
+#else
+		.start	= 12,		
+		.end	= 12,
+#endif
+#endif		
+#endif		
 		.flags	= IORESOURCE_IO,
 	},
 };
@@ -494,7 +521,14 @@ static struct resource resources_qup_i2c_gsbi5[] = {
 		.flags	= IORESOURCE_IO,
 	},
 };
-
+#ifdef CONFIG_PIEZO
+struct platform_device apq8064_device_qup_i2c_gsbi5 = {
+	.name		= "qup_i2c",
+	.id		= 5,
+	.num_resources	= ARRAY_SIZE(resources_qup_i2c_gsbi5),
+	.resource	= resources_qup_i2c_gsbi5,
+};
+#endif
 struct platform_device mpq8064_device_qup_i2c_gsbi5 = {
 	.name		= "qup_i2c",
 	.id		= 5,
@@ -572,6 +606,77 @@ struct platform_device apq8064_device_uart_gsbi7 = {
 	.num_resources	= ARRAY_SIZE(resources_uart_gsbi7),
 	.resource	= resources_uart_gsbi7,
 };
+
+#ifdef CONFIG_SKY_DMB_SPI_HW
+static struct resource resources_qup_spi_gsbi7[] = {
+	{
+		.name	= "spi_base",
+		.start	= MSM_GSBI7_QUP_PHYS,
+		.end	= MSM_GSBI7_QUP_PHYS + SZ_4K - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.name	= "gsbi_base",
+		.start	= MSM_GSBI7_PHYS,
+		.end	= MSM_GSBI7_PHYS + 4 - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.name	= "spi_irq_in",
+		.start	= GSBI7_QUP_IRQ,
+		.end	  = GSBI7_QUP_IRQ,
+		.flags	= IORESOURCE_IRQ,
+	},
+	{
+		.name   = "spidm_channels",
+		.start  = 10, // APQ8064 GSBI7
+		.end    = 11, // APQ8064 GSBI7
+		.flags  = IORESOURCE_DMA,
+	},
+	{
+		.name   = "spidm_crci",
+		.start  = 7, //APQ8064 GSBI7 [BSPdmovADM30.h]
+		.end    = 8, //APQ8064 GSBI7
+		.flags  = IORESOURCE_DMA,
+	},
+};
+
+struct platform_device apq8064_device_qup_spi_gsbi7 = {
+	.name		= "spi_qsd",
+	.id		= 7,
+	.num_resources	= ARRAY_SIZE(resources_qup_spi_gsbi7),
+	.resource	= resources_qup_spi_gsbi7,
+};
+#endif /* CONFIG_SKY_DMB_SPI_HW */
+
+#ifdef CONFIG_PANTECH_GSBI5_UART_CONSOLE
+static struct resource resources_uart_gsbi5[] = {
+	{
+		.start	= GSBI5_UARTDM_IRQ,
+		.end	= GSBI5_UARTDM_IRQ,
+		.flags	= IORESOURCE_IRQ,
+	},
+	{
+		.start	= MSM_UART5DM_PHYS,
+		.end	= MSM_UART5DM_PHYS + PAGE_SIZE - 1,
+		.name	= "uartdm_resource",
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.start	= MSM_GSBI5_PHYS,
+		.end	= MSM_GSBI5_PHYS + PAGE_SIZE - 1,
+		.name	= "gsbi_resource",
+		.flags	= IORESOURCE_MEM,
+	},
+};
+
+struct platform_device apq8064_device_uart_gsbi5 = {
+	.name	= "msm_serial_hsl",
+	.id	= 0,
+	.num_resources	= ARRAY_SIZE(resources_uart_gsbi5),
+	.resource	= resources_uart_gsbi5,
+};
+#endif
 
 struct platform_device apq_pcm = {
 	.name	= "msm-pcm-dsp",
@@ -656,7 +761,9 @@ static const struct msm_gpio tsif0_gpios[] = {
 	{ .gpio_cfg = TSIF_0_CLK,  .label =  "tsif_clk", },
 	{ .gpio_cfg = TSIF_0_EN,   .label =  "tsif_en", },
 	{ .gpio_cfg = TSIF_0_DATA, .label =  "tsif_data", },
+#ifndef CONFIG_SKY_DMB_TSIF_IF
 	{ .gpio_cfg = TSIF_0_SYNC, .label =  "tsif_sync", },
+#endif
 };
 
 static const struct msm_gpio tsif1_gpios[] = {
@@ -1264,6 +1371,32 @@ static struct msm_bus_vectors vidc_init_vectors[] = {
 	},
 };
 static struct msm_bus_vectors vidc_venc_vga_vectors[] = {
+#ifdef CONFIG_PANTECH_CAMERA
+	{
+		.src = MSM_BUS_MASTER_VIDEO_ENC,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab  = 163577856,
+		.ib  = 1308622848,
+	},
+	{
+		.src = MSM_BUS_MASTER_VIDEO_DEC,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab  = 219152384,
+		.ib  = 876609536,
+	},
+	{
+		.src = MSM_BUS_MASTER_AMPSS_M0,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab  = 1750000,
+		.ib  = 3500000,
+	},
+	{
+		.src = MSM_BUS_MASTER_AMPSS_M0,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab  = 1750000,
+		.ib  = 3500000,
+	},
+#else
 	{
 		.src = MSM_BUS_MASTER_VIDEO_ENC,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
@@ -1288,6 +1421,7 @@ static struct msm_bus_vectors vidc_venc_vga_vectors[] = {
 		.ab  = 500000,
 		.ib  = 1000000,
 	},
+#endif
 };
 static struct msm_bus_vectors vidc_vdec_vga_vectors[] = {
 	{
@@ -1316,6 +1450,32 @@ static struct msm_bus_vectors vidc_vdec_vga_vectors[] = {
 	},
 };
 static struct msm_bus_vectors vidc_venc_720p_vectors[] = {
+#ifdef CONFIG_PANTECH_CAMERA
+	{
+		.src = MSM_BUS_MASTER_VIDEO_ENC,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab  = 372244480,
+		.ib  = 2560000000U,
+	},
+	{
+		.src = MSM_BUS_MASTER_VIDEO_DEC,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab  = 501219328,
+		.ib  = 2560000000U,
+	},
+	{
+		.src = MSM_BUS_MASTER_AMPSS_M0,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab  = 2500000,
+		.ib  = 5000000,
+	},
+	{
+		.src = MSM_BUS_MASTER_AMPSS_M0,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab  = 2500000,
+		.ib  = 5000000,
+	},
+#else
 	{
 		.src = MSM_BUS_MASTER_VIDEO_ENC,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
@@ -1340,6 +1500,7 @@ static struct msm_bus_vectors vidc_venc_720p_vectors[] = {
 		.ab  = 1750000,
 		.ib  = 3500000,
 	},
+#endif
 };
 static struct msm_bus_vectors vidc_vdec_720p_vectors[] = {
 	{
@@ -3145,13 +3306,21 @@ static struct resource msm_vcap_resources[] = {
 	},
 };
 
+#ifdef CONFIG_SKY_DMB_SPI_HW
+static unsigned vcap_gpios[] = {
+	2, 3, 4, 5, 6, 7, 8, 9, 10,
+	11, 12, 13, 18, 19, 20, 21,
+	22, 23, 24, 25, 26, 80,
+	86, 87,
+};
+#else
 static unsigned vcap_gpios[] = {
 	2, 3, 4, 5, 6, 7, 8, 9, 10,
 	11, 12, 13, 18, 19, 20, 21,
 	22, 23, 24, 25, 26, 80, 82,
 	83, 84, 85, 86, 87,
 };
-
+#endif
 static struct vcap_platform_data vcap_pdata = {
 	.gpios = vcap_gpios,
 	.num_gpios = ARRAY_SIZE(vcap_gpios),

@@ -139,6 +139,7 @@ static int32_t msm_actuator_init_focus(struct msm_actuator_ctrl_t *a_ctrl,
 		if (rc < 0)
 			break;
 	}
+
 	a_ctrl->curr_step_pos = 0;
 	CDBG("%s Exit:%d\n", __func__, rc);
 	return rc;
@@ -237,7 +238,10 @@ static int32_t msm_actuator_move_focus(
 	int16_t dest_step_pos = move_params->dest_step_pos;
 	uint16_t curr_lens_pos = 0;
 	int dir = move_params->dir;
-	int32_t num_steps = move_params->num_steps;
+
+	// FC temp build warning fixed
+	//int32_t num_steps = move_params->num_steps;    
+
 	struct damping_params_t ringing_params_kernel;
 
 	if (copy_from_user(&ringing_params_kernel,
@@ -250,7 +254,7 @@ static int32_t msm_actuator_move_focus(
 	CDBG("%s called, dir %d, num_steps %d\n",
 		__func__,
 		dir,
-		num_steps);
+		move_params->num_steps);
 
 	if (dest_step_pos == a_ctrl->curr_step_pos)
 		return rc;
@@ -500,7 +504,6 @@ static int32_t msm_actuator_init(struct msm_actuator_ctrl_t *a_ctrl,
 		a_ctrl->reg_tbl_size *
 		sizeof(struct msm_actuator_reg_params_t))) {
 		kfree(a_ctrl->i2c_reg_tbl);
-		a_ctrl->i2c_reg_tbl = NULL;
 		return -EFAULT;
 	}
 
@@ -513,7 +516,6 @@ static int32_t msm_actuator_init(struct msm_actuator_ctrl_t *a_ctrl,
 				GFP_KERNEL);
 			if (init_settings == NULL) {
 				kfree(a_ctrl->i2c_reg_tbl);
-                                a_ctrl->i2c_reg_tbl = NULL;
 				pr_err("%s Error allocating memory for init_settings\n",
 					__func__);
 				return -EFAULT;
@@ -524,7 +526,6 @@ static int32_t msm_actuator_init(struct msm_actuator_ctrl_t *a_ctrl,
 				sizeof(struct reg_settings_t))) {
 				kfree(init_settings);
 				kfree(a_ctrl->i2c_reg_tbl);
-                                a_ctrl->i2c_reg_tbl = NULL;
 				pr_err("%s Error copying init_settings\n",
 					__func__);
 				return -EFAULT;
@@ -536,7 +537,6 @@ static int32_t msm_actuator_init(struct msm_actuator_ctrl_t *a_ctrl,
 			kfree(init_settings);
 			if (rc < 0) {
 				kfree(a_ctrl->i2c_reg_tbl);
-                                a_ctrl->i2c_reg_tbl = NULL;
 				pr_err("%s Error actuator_init_focus\n",
 					__func__);
 				return -EFAULT;

@@ -248,12 +248,23 @@ int ping_init_sock(struct sock *sk)
 	struct net *net = sock_net(sk);
 	gid_t group = current_egid();
 	gid_t range[2];
+#ifndef FEATURE_SKY_DS_ANDROID_SECURITY_PATCH_CVE_2014_2851
 	struct group_info *group_info = get_current_groups();
 	int i, j, count = group_info->ngroups;
+#else
+	struct group_info *group_info;
+	int i, j, count;
+	int ret = 0;
+#endif /* FEATURE_SKY_DS_ANDROID_SECURITY_PATCH_CVE_2014_2851 */
 
 	inet_get_ping_group_range_net(net, range, range+1);
 	if (range[0] <= group && group <= range[1])
 		return 0;
+
+#ifdef FEATURE_SKY_DS_ANDROID_SECURITY_PATCH_CVE_2014_2851
+	group_info = get_current_groups();
+	count = group_info->ngroups;
+#endif /* FEATURE_SKY_DS_ANDROID_SECURITY_PATCH_CVE_2014_2851 */
 
 	for (i = 0; i < group_info->nblocks; i++) {
 		int cp_count = min_t(int, NGROUPS_PER_BLOCK, count);
@@ -261,13 +272,27 @@ int ping_init_sock(struct sock *sk)
 		for (j = 0; j < cp_count; j++) {
 			group = group_info->blocks[i][j];
 			if (range[0] <= group && group <= range[1])
+#ifndef FEATURE_SKY_DS_ANDROID_SECURITY_PATCH_CVE_2014_2851
 				return 0;
+#else
+				goto out_release_group;
+#endif /* FEATURE_SKY_DS_ANDROID_SECURITY_PATCH_CVE_2014_2851 */
+
 		}
 
 		count -= cp_count;
 	}
 
+#ifndef FEATURE_SKY_DS_ANDROID_SECURITY_PATCH_CVE_2014_2851
 	return -EACCES;
+#else
+	ret = -EACCES;
+
+out_release_group:
+	put_group_info(group_info);
+	return ret;
+#endif /* FEATURE_SKY_DS_ANDROID_SECURITY_PATCH_CVE_2014_2851 */
+
 }
 EXPORT_SYMBOL_GPL(ping_init_sock);
 

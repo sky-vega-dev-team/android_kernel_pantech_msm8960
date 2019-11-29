@@ -15,6 +15,8 @@
 
 #include "board-8064.h"
 
+#define CONFIG_PANTECH_LCD_ROHM_APQ8064
+
 #define VREG_CONSUMERS(_id) \
 	static struct regulator_consumer_supply vreg_consumers_##_id[]
 
@@ -31,6 +33,15 @@ VREG_CONSUMERS(L2) = {
 	REGULATOR_SUPPLY("mipi_csi_vdd",	"msm_csid.0"),
 	REGULATOR_SUPPLY("mipi_csi_vdd",	"msm_csid.1"),
 	REGULATOR_SUPPLY("mipi_csi_vdd",	"msm_csid.2"),
+#ifdef CONFIG_PANTECH_CAMERA_CE1502
+	REGULATOR_SUPPLY("mipi_csi_vdd",	"4-0078"),//"msm_camera_ce1502.0"),
+#endif
+#ifdef CONFIG_PANTECH_CAMERA_YACD5C1SBDBC
+       REGULATOR_SUPPLY("mipi_csi_vdd",	"4-0040"),//"msm_camera_yacd5c1sbdbc.0"),
+#endif
+#ifdef CONFIG_PANTECH_CAMERA_AS0260
+       REGULATOR_SUPPLY("mipi_csi_vdd",	"4-a090"),//"4-0048"),//"msm_camera_as0260.0"),"4-005d"),//
+#endif
 	REGULATOR_SUPPLY("lvds_pll_vdda",	"lvds.0"),
 	REGULATOR_SUPPLY("dsi1_pll_vdda",	"mipi_dsi.1"),
 	REGULATOR_SUPPLY("dsi_pll_vdda",	"mdp.0"),
@@ -115,6 +126,9 @@ VREG_CONSUMERS(L18) = {
 };
 VREG_CONSUMERS(L21) = {
 	REGULATOR_SUPPLY("8921_l21",		NULL),
+#if defined(CONFIG_TOUCHSCREEN_QT602240) || defined(CONFIG_TOUCHSCREEN_CYTTSP_GEN4) || defined(CONFIG_TOUCHSCREEN_SYNAPTICS_RMI4_PANTECH)
+	REGULATOR_SUPPLY("dsi1_io_1_8V",		"mipi_dsi.1"),		//p14682 add 
+#endif
 };
 VREG_CONSUMERS(L22) = {
 	REGULATOR_SUPPLY("8921_l22",		NULL),
@@ -195,9 +209,15 @@ VREG_CONSUMERS(S6) = {
 VREG_CONSUMERS(S7) = {
 	REGULATOR_SUPPLY("8921_s7",		NULL),
 };
+#if defined(CONFIG_PANTECH_CAMERA)
 VREG_CONSUMERS(S8) = {
 	REGULATOR_SUPPLY("8921_s8",		NULL),
 };
+#else
+VREG_CONSUMERS(S8) = {
+	REGULATOR_SUPPLY("8921_s8",		NULL),
+};
+#endif
 VREG_CONSUMERS(LVS1) = {
 	REGULATOR_SUPPLY("8921_lvs1",		NULL),
 	REGULATOR_SUPPLY("iris_vddio",		"wcnss_wlan.0"),
@@ -245,6 +265,7 @@ VREG_CONSUMERS(EXT_MPP8) = {
 	REGULATOR_SUPPLY("ext_mpp8",		NULL),
 	REGULATOR_SUPPLY("vbus",		"msm_ehci_host.1"),
 };
+#if (CONFIG_BOARD_VER <= CONFIG_PT10)	
 VREG_CONSUMERS(EXT_3P3V) = {
 	REGULATOR_SUPPLY("ext_3p3v",		NULL),
 	REGULATOR_SUPPLY("vdd-phy",		"spi0.2"),
@@ -254,6 +275,7 @@ VREG_CONSUMERS(EXT_3P3V) = {
 	REGULATOR_SUPPLY("hdmi_mux_vdd",        "hdmi_msm.0"),
 	REGULATOR_SUPPLY("pcie_ext_3p3v",       "msm_pcie"),
 };
+#endif
 VREG_CONSUMERS(EXT_TS_SW) = {
 	REGULATOR_SUPPLY("ext_ts_sw",		NULL),
 	REGULATOR_SUPPLY("vdd_ana",		"3-005b"),
@@ -557,8 +579,10 @@ struct gpio_regulator_platform_data
 apq8064_gpio_regulator_pdata[] __devinitdata = {
 	/*        ID      vreg_name gpio_label   gpio                  supply */
 	GPIO_VREG(EXT_5V, "ext_5v", "ext_5v_en", PM8921_MPP_PM_TO_SYS(7), NULL),
+#if (CONFIG_BOARD_VER <= CONFIG_PT10)	
 	GPIO_VREG(EXT_3P3V, "ext_3p3v", "ext_3p3v_en",
 		  APQ8064_EXT_3P3V_REG_EN_GPIO, NULL),
+#endif		  
 	GPIO_VREG(EXT_TS_SW, "ext_ts_sw", "ext_ts_sw_en",
 		  PM8921_GPIO_PM_TO_SYS(23), "ext_3p3v"),
 	GPIO_VREG(EXT_MPP8, "ext_mpp8", "ext_mpp8_en",
@@ -601,7 +625,11 @@ msm8064_pm8921_regulator_pdata[] __devinitdata = {
 
 	/*           ID        name     always_on pd       en_t supply reg_ID */
 	PM8XXX_VS300(USB_OTG,  "8921_usb_otg",  0, 0,         0, "ext_5v", 2),
+#if defined(CONFIG_F_SKYDISP_CONFIGURE_HDMI_MVS_BECAUSE_OF_SLEEP_CURRENT)
+	PM8XXX_VS300(HDMI_MVS, "8921_hdmi_mvs", 0, 0,         0, "ext_5v", 3),
+#else
 	PM8XXX_VS300(HDMI_MVS, "8921_hdmi_mvs", 0, 1,         0, "ext_5v", 3),
+#endif
 };
 
 /* PM8917 regulator constraints */
@@ -645,8 +673,12 @@ apq8064_rpm_regulator_init_data[] __devinitdata = {
 	RPM_SMPS(S3, 0, 1, 1,  500000, 1150000, NULL, 100000, 4p80, NONE, NONE),
 	RPM_SMPS(S4, 1, 1, 0, 1800000, 1800000, NULL, 100000, 1p60, AUTO, AUTO),
 	RPM_SMPS(S7, 0, 0, 0, 1300000, 1300000, NULL, 100000, 3p20, NONE, NONE),
+ //20120504 yujm_camera vreg isp core level change as voltage drop from 1.1v --> to 1.2v
+#if defined(CONFIG_PANTECH_CAMERA) 
+	RPM_SMPS(S8, 0, 1, 1, 1200000, 1200000, NULL, 100000, 1p60, NONE, NONE),
+#else
 	RPM_SMPS(S8, 0, 1, 0, 2200000, 2200000, NULL,      0, 1p60, NONE, NONE),
-
+#endif
 	/*	ID a_on pd ss min_uV   max_uV   supply    sys_uA init_ip */
 	RPM_LDO(L1,  1, 1, 0, 1100000, 1100000, "8921_s4",     0,  1000),
 	RPM_LDO(L2,  0, 1, 0, 1200000, 1200000, "8921_s4",     0,     0),
@@ -655,25 +687,71 @@ apq8064_rpm_regulator_init_data[] __devinitdata = {
 	RPM_LDO(L5,  0, 1, 0, 2950000, 2950000, NULL,          0,     0),
 	RPM_LDO(L6,  0, 1, 0, 2950000, 2950000, NULL,          0,     0),
 	RPM_LDO(L7,  0, 1, 0, 1850000, 2950000, NULL,          0,     0),
+#if defined(CONFIG_PANTECH_CAMERA)
 	RPM_LDO(L8,  0, 1, 0, 2800000, 2800000, NULL,          0,     0),
+#else
+	RPM_LDO(L8,  0, 1, 0, 2800000, 2800000, NULL,          0,     0),
+#endif
 	RPM_LDO(L9,  0, 1, 0, 3000000, 3000000, NULL,          0,     0),
 	RPM_LDO(L10, 0, 1, 0, 2900000, 2900000, NULL,          0,     0),
+#if defined(CONFIG_PANTECH_LCD_ROHM_APQ8064) || defined(CONFIG_MACH_APQ8064_EF51S) || defined(CONFIG_MACH_APQ8064_EF51K)
+#if defined(CONFIG_SKY_EF52S_BOARD)||defined(CONFIG_SKY_EF52K_BOARD)||defined(CONFIG_SKY_EF52L_BOARD)||defined(CONFIG_SKY_EF52W_BOARD)	
+	RPM_LDO(L11,	 0, 1, 0, 3300000, 3300000, NULL,	   0, 0),
+#else
+	RPM_LDO(L11, 0, 1, 0, 2850000, 2850000, NULL,          0,     0),
+#endif 
+#else
 	RPM_LDO(L11, 0, 1, 0, 3000000, 3000000, NULL,          0,     0),
+#endif
+#if defined(CONFIG_PANTECH_CAMERA)	
 	RPM_LDO(L12, 0, 1, 0, 1200000, 1200000, "8921_s4",     0,     0),
+#else	
+	RPM_LDO(L12, 0, 1, 0, 1200000, 1200000, "8921_s4",     0,     0),
+#endif	
 	RPM_LDO(L13, 0, 0, 0, 2220000, 2220000, NULL,          0,     0),
 	RPM_LDO(L14, 0, 1, 0, 1800000, 1800000, NULL,          0,     0),
+#if defined(CONFIG_PANTECH_CAMERA)	
+	RPM_LDO(L15,	 0, 1, 0, 2800000, 2800000, NULL,      0, 0),
+#else
 	RPM_LDO(L15, 0, 1, 0, 1800000, 2950000, NULL,          0,     0),
+#endif	
+#if defined(CONFIG_PANTECH_CAMERA)
 	RPM_LDO(L16, 0, 1, 0, 2800000, 2800000, NULL,          0,     0),
+#else
+	RPM_LDO(L16,	 0, 1, 0, 2800000, 2800000, NULL,      0, 0),
+#endif
+#if (defined(CONFIG_MACH_APQ8064_EF52S)||defined(CONFIG_MACH_APQ8064_EF52K)||defined(CONFIG_MACH_APQ8064_EF52L)||defined(CONFIG_MACH_APQ8064_EF52W))
+	RPM_LDO(L17, 0, 1, 0, 1800000, 1800000, NULL,          0,     0),
+#elif defined(CONFIG_TOUCHSCREEN_QT602240) || defined(CONFIG_TOUCHSCREEN_CYTTSP_GEN4)
+	RPM_LDO(L17, 0, 1, 0, 2900000, 2900000, NULL,		   0, 	  0),
+#else
 	RPM_LDO(L17, 0, 1, 0, 2000000, 2000000, NULL,          0,     0),
+#endif
 	RPM_LDO(L18, 0, 1, 0, 1300000, 1800000, "8921_s4",     0,     0),
+#if defined(CONFIG_SKY_EF52S_BOARD)||defined(CONFIG_SKY_EF52K_BOARD)||defined(CONFIG_SKY_EF52L_BOARD)||defined(CONFIG_SKY_EF52W_BOARD)
+        RPM_LDO(L21, 0, 1, 0, 1800000, 1800000, NULL,		   0,	  0),
+#elif defined(CONFIG_TOUCHSCREEN_QT602240) || defined(CONFIG_TOUCHSCREEN_CYTTSP_GEN4)
+        RPM_LDO(L21, 0, 1, 0, 1900000, 1900000, NULL,          0,     0),
+#else
 	RPM_LDO(L21, 0, 1, 0, 1050000, 1050000, NULL,          0,     0),
+#endif
+#if defined(CONFIG_PANTECH_CAMERA)
+	RPM_LDO(L22,	 0, 1, 0, 2800000, 2800000, NULL,      0, 0),
+#else
 	RPM_LDO(L22, 0, 1, 0, 2600000, 2600000, NULL,          0,     0),
+#endif
 	RPM_LDO(L23, 0, 1, 0, 1800000, 1800000, NULL,          0,     0),
 	RPM_LDO(L24, 0, 1, 1,  750000, 1150000, "8921_s1", 10000, 10000),
 	RPM_LDO(L25, 1, 1, 0, 1250000, 1250000, "8921_s1", 10000, 10000),
 	RPM_LDO(L27, 0, 0, 0, 1100000, 1100000, "8921_s7",     0,     0),
 	RPM_LDO(L28, 0, 1, 0, 1050000, 1050000, "8921_s7",     0,     0),
+#if (defined(CONFIG_MACH_APQ8064_EF48S)||defined(CONFIG_MACH_APQ8064_EF49K)||defined(CONFIG_MACH_APQ8064_EF50L))
+	RPM_LDO(L29, 0, 1, 0, 2800000, 2800000, NULL,          0,     0),
+#elif (defined(CONFIG_MACH_APQ8064_EF51S)||defined(CONFIG_MACH_APQ8064_EF51K)||defined(CONFIG_MACH_APQ8064_EF51L)||defined(CONFIG_MACH_APQ8064_EF52S)||defined(CONFIG_MACH_APQ8064_EF52K)||defined(CONFIG_MACH_APQ8064_EF52L)||defined(CONFIG_MACH_APQ8064_EF52W))
+    RPM_LDO(L29, 0, 1, 0, 1800000, 1800000, NULL,          0,     0),
+#else
 	RPM_LDO(L29, 0, 1, 0, 2000000, 2000000, NULL,          0,     0),
+#endif
 
 	/*     ID  a_on pd ss                   supply */
 	RPM_VS(LVS1, 0, 1, 0,                   "8921_s4"),

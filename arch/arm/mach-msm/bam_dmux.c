@@ -61,7 +61,8 @@ module_param_named(max_sleep, POLLING_MAX_SLEEP,
 static int POLLING_INACTIVITY = 1;
 module_param_named(inactivity, POLLING_INACTIVITY,
 		   int, S_IRUGO | S_IWUSR | S_IWGRP);
-static int bam_adaptive_timer_enabled;
+//FEATURE_SKY_DS_BAM_ADAPTIVE_TIMER_OFF, 1->0   
+static int bam_adaptive_timer_enabled = 0;
 module_param_named(adaptive_timer_enabled,
 			bam_adaptive_timer_enabled,
 		   int, S_IRUGO | S_IWUSR | S_IWGRP);

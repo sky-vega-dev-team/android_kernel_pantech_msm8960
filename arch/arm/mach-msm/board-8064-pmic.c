@@ -112,22 +112,106 @@ struct pm8xxx_mpp_init {
 			PM_GPIO_STRENGTH_HIGH, \
 			PM_GPIO_FUNC_NORMAL, 0, 0)
 
+/*************** LCD Model Macro [by Cho.kyoung.ku] *************************/
+#if defined(CONFIG_SKY_EF48S_BOARD)||defined(CONFIG_SKY_EF49K_BOARD)||defined(CONFIG_SKY_EF50L_BOARD)
+#define FEATURE_SKYDISP_CONT_SPLASH_SKY_BOOT_IMAGE
+#elif defined(CONFIG_SKY_EF51S_BOARD) || defined(CONFIG_SKY_EF51K_BOARD) || defined(CONFIG_SKY_EF51L_BOARD)
+#define FEATURE_SKYDISP_CONT_SPLASH_SKY_BOOT_IMAGE
+#elif defined(CONFIG_SKY_EF52S_BOARD)||defined(CONFIG_SKY_EF52K_BOARD)||defined(CONFIG_SKY_EF52L_BOARD)||defined(CONFIG_SKY_EF52W_BOARD)
+#define FEATURE_SKYDISP_CONT_SPLASH_SKY_BOOT_IMAGE
+#endif
+/***************************************************************************/
 /* Initial PM8921 GPIO configurations */
 static struct pm8xxx_gpio_init pm8921_gpios[] __initdata = {
+#ifndef FEATURE_SKYDISP_CONT_SPLASH_SKY_BOOT_IMAGE
 	PM8921_GPIO_OUTPUT(14, 1, HIGH),	/* HDMI Mux Selector */
+#endif
 	PM8921_GPIO_OUTPUT_BUFCONF(25, 0, LOW, CMOS), /* DISP_RESET_N */
+#ifndef FEATURE_SKYDISP_CONT_SPLASH_SKY_BOOT_IMAGE
 	PM8921_GPIO_OUTPUT_FUNC(26, 0, PM_GPIO_FUNC_2), /* Bl: Off, PWM mode */
+#endif
 	PM8921_GPIO_OUTPUT_VIN(30, 1, PM_GPIO_VIN_VPH), /* SMB349 susp line */
 	PM8921_GPIO_OUTPUT_BUFCONF(36, 1, LOW, OPEN_DRAIN),
 	PM8921_GPIO_OUTPUT_FUNC(44, 0, PM_GPIO_FUNC_2),
 	PM8921_GPIO_OUTPUT(33, 0, HIGH),
 	PM8921_GPIO_OUTPUT(20, 0, HIGH),
 	PM8921_GPIO_INPUT(35, PM_GPIO_PULL_UP_30),
+#ifdef CONFIG_SKY_SND_MBHC_GPIO
+	PM8921_GPIO_INPUT(38, PM_GPIO_PULL_NO),
+#else
 	PM8921_GPIO_INPUT(38, PM_GPIO_PULL_UP_30),
+#endif
 	/* TABLA CODEC RESET */
 	PM8921_GPIO_OUTPUT(34, 0, MED),
 	PM8921_GPIO_OUTPUT(13, 0, HIGH),               /* PCIE_CLK_PWR_EN */
 	PM8921_GPIO_INPUT(12, PM_GPIO_PULL_UP_30),     /* PCIE_WAKE_N */
+#ifdef CONFIG_PN544
+	PM8921_GPIO_OUTPUT(7, 0, HIGH),
+	PM8921_GPIO_OUTPUT(22, 0, HIGH),
+#endif
+
+#ifdef CONFIG_PANTECH_ANDROID_OTG
+	PM8921_GPIO_OUTPUT(36, 1, HIGH),                      /* control : USB_HS_ID */
+	PM8921_GPIO_OUTPUT(44, 1, HIGH),                      /* control : PMIC_HS_ID */
+	PM8921_GPIO_INPUT(25,	 PM_GPIO_PULL_NO), /* external pull-up 1p8*/
+#endif /* CONFIG_PANTECH_ANDROID_OTG */
+#ifdef CONFIG_PANTECH_CAMERA
+	PM8921_GPIO_OUTPUT(28, 0, HIGH), //main camera reset
+	PM8921_GPIO_OUTPUT(31, 0, HIGH),
+	PM8921_GPIO_OUTPUT(17, 0, HIGH),
+	PM8921_GPIO_OUTPUT(16, 0, HIGH),
+	PM8921_GPIO_OUTPUT(29, 0, HIGH), //sub camera reset
+#endif
+#ifdef CONFIG_PANTECH_EXTERNAL_SDCARD
+	PM8921_GPIO_INPUT(24, PM_GPIO_PULL_NO),
+#endif
+#ifdef CONFIG_SKY_DMB
+#if 0
+// DMB PMIC GPIO (depend on model H/W)
+#elif defined(CONFIG_MACH_APQ8064_EF51S)||defined(CONFIG_MACH_APQ8064_EF51K)
+	PM8921_GPIO_OUTPUT(5, 0, HIGH), // DMB_ANT_SEL
+	PM8921_GPIO_OUTPUT(6, 0, HIGH), // DMB_RST_N
+#endif
+#endif
+
+#if (CONFIG_BOARD_VER >= CONFIG_WS20) && defined(CONFIG_UNUSED_GPIO_MPP_SETTING)
+#if !defined(CONFIG_MACH_APQ8064_EF52W)
+	PM8921_GPIO_INPUT(2, PM_GPIO_PULL_DN),
+#endif
+	PM8921_GPIO_INPUT(3, PM_GPIO_PULL_DN),
+	PM8921_GPIO_INPUT(4, PM_GPIO_PULL_DN),
+#if (!defined(CONFIG_MACH_APQ8064_EF51S) && !defined(CONFIG_MACH_APQ8064_EF51K))
+	PM8921_GPIO_INPUT(5, PM_GPIO_PULL_DN),
+	PM8921_GPIO_INPUT(6, PM_GPIO_PULL_DN),
+#endif
+	PM8921_GPIO_INPUT(8, PM_GPIO_PULL_DN),
+#if (!defined(CONFIG_MACH_APQ8064_EF52S) && !defined(CONFIG_MACH_APQ8064_EF52K) && !defined(CONFIG_MACH_APQ8064_EF52L) && !defined(CONFIG_MACH_APQ8064_EF52W))
+	PM8921_GPIO_INPUT(11, PM_GPIO_PULL_DN),
+#endif
+	PM8921_GPIO_INPUT(12, PM_GPIO_PULL_DN),
+	PM8921_GPIO_INPUT(13, PM_GPIO_PULL_DN),
+	PM8921_GPIO_INPUT(15, PM_GPIO_PULL_DN),
+	PM8921_GPIO_INPUT(18, PM_GPIO_PULL_DN),
+	PM8921_GPIO_INPUT(19, PM_GPIO_PULL_DN),
+	PM8921_GPIO_INPUT(20, PM_GPIO_PULL_DN),
+#if (!defined(CONFIG_MACH_APQ8064_EF52S) && !defined(CONFIG_MACH_APQ8064_EF52K) && !defined(CONFIG_MACH_APQ8064_EF52L) && !defined(CONFIG_MACH_APQ8064_EF52W))
+	PM8921_GPIO_INPUT(21, PM_GPIO_PULL_DN),
+#endif
+	PM8921_GPIO_INPUT(23, PM_GPIO_PULL_DN),
+	PM8921_GPIO_INPUT(27, PM_GPIO_PULL_DN),
+	PM8921_GPIO_INPUT(30, PM_GPIO_PULL_DN),
+	PM8921_GPIO_INPUT(32, PM_GPIO_PULL_DN),
+	PM8921_GPIO_INPUT(35, PM_GPIO_PULL_DN),
+	PM8921_GPIO_INPUT(37, PM_GPIO_PULL_DN),
+	PM8921_GPIO_INPUT(40, PM_GPIO_PULL_DN),
+	PM8921_GPIO_INPUT(41, PM_GPIO_PULL_DN),
+	PM8921_GPIO_INPUT(43, PM_GPIO_PULL_DN),
+
+#if (CONFIG_BOARD_VER >= CONFIG_TP10) && defined(CONFIG_MACH_APQ8064_EF50L)
+	PM8921_GPIO_INPUT(44, PM_GPIO_PULL_DN),
+#endif
+
+#endif
 };
 
 static struct pm8xxx_gpio_init pm8921_mtp_kp_gpios[] __initdata = {
@@ -181,14 +265,40 @@ static struct pm8xxx_gpio_init pm8921_mpq_gpios[] __initdata = {
 
 /* Initial PM8XXX MPP configurations */
 static struct pm8xxx_mpp_init pm8xxx_mpps[] __initdata = {
+#if defined(CONFIG_PANTECH_SMB347_CHARGER)
+	PM8921_MPP_INIT(2, SINK, PM8XXX_MPP_AIN_AMUX_CH5, AOUT_CTRL_DISABLE),
+#endif
+#ifdef CONFIG_PANTECH_ANDROID_OTG
+	PM8921_MPP_INIT(3, SINK, PM8XXX_MPP_AIN_AMUX_CH5, AOUT_CTRL_DISABLE),
+#else /* CONFIG_PANTECH_ANDROID_OTG */
 	PM8921_MPP_INIT(3, D_OUTPUT, PM8921_MPP_DIG_LEVEL_VPH, DOUT_CTRL_LOW),
+#endif /* CONFIG_PANTECH_ANDROID_OTG */
 	/* External 5V regulator enable; shared by HDMI and USB_OTG switches. */
 	PM8921_MPP_INIT(7, D_OUTPUT, PM8921_MPP_DIG_LEVEL_VPH, DOUT_CTRL_LOW),
+#ifdef CONFIG_TOUCHSCREEN_CYTTSP_GEN4
+	PM8921_MPP_INIT(8, D_INPUT, PM8921_MPP_DIG_LEVEL_S4, DIN_TO_INT),
+#else
 	PM8921_MPP_INIT(8, D_OUTPUT, PM8921_MPP_DIG_LEVEL_S4, DOUT_CTRL_LOW),
+#endif
 	/*MPP9 is used to detect docking station connection/removal on Liquid*/
 	PM8921_MPP_INIT(9, D_INPUT, PM8921_MPP_DIG_LEVEL_S4, DIN_TO_INT),
+#if defined(CONFIG_PANTECH_SMB347_CHARGER)
+	PM8921_MPP_INIT(1, SINK, PM8XXX_MPP_CS_OUT_5MA, CS_CTRL_DISABLE),
+#else
 	/* PCIE_RESET_N */
 	PM8921_MPP_INIT(1, D_OUTPUT, PM8921_MPP_DIG_LEVEL_VPH, DOUT_CTRL_HIGH),
+#endif
+#if (CONFIG_BOARD_VER >= CONFIG_WS20) && defined(CONFIG_UNUSED_GPIO_MPP_SETTING)
+	PM8921_MPP_INIT(7, SINK, PM8XXX_MPP_CS_OUT_5MA, CS_CTRL_DISABLE),
+	PM8921_MPP_INIT(9, SINK, PM8XXX_MPP_CS_OUT_5MA, CS_CTRL_DISABLE),
+	PM8921_MPP_INIT(10, SINK, PM8XXX_MPP_CS_OUT_5MA, CS_CTRL_DISABLE),
+	PM8921_MPP_INIT(11, SINK, PM8XXX_MPP_CS_OUT_5MA, CS_CTRL_DISABLE),
+	PM8921_MPP_INIT(12, SINK, PM8XXX_MPP_CS_OUT_5MA, CS_CTRL_DISABLE),
+	PM8821_MPP_INIT(1, SINK, PM8XXX_MPP_CS_OUT_5MA, CS_CTRL_DISABLE),
+	PM8821_MPP_INIT(2, SINK, PM8XXX_MPP_CS_OUT_5MA, CS_CTRL_DISABLE),
+	PM8821_MPP_INIT(3, SINK, PM8XXX_MPP_CS_OUT_5MA, CS_CTRL_DISABLE),
+	PM8821_MPP_INIT(4, SINK, PM8XXX_MPP_CS_OUT_5MA, CS_CTRL_DISABLE),
+#endif
 };
 
 static struct pm8xxx_gpio_init pm8921_sglte2_gpios[] __initdata = {
@@ -267,8 +377,13 @@ static struct pm8xxx_pwrkey_platform_data apq8064_pm8921_pwrkey_pdata = {
 static struct pm8xxx_misc_platform_data apq8064_pm8921_misc_pdata = {
 	.priority		= 0,
 };
+#if defined(CONFIG_SKY_EF52S_BOARD)||defined(CONFIG_SKY_EF52K_BOARD)||defined(CONFIG_SKY_EF52L_BOARD)||defined(CONFIG_SKY_EF52W_BOARD)
+#define PM8921_LC_LED_MAX_CURRENT	255	/* level 255 mean 40 mA */
 
+#else //ORIGIN
 #define PM8921_LC_LED_MAX_CURRENT	12	/* I = 12mA */
+
+#endif
 #define PM8921_LC_LED_LOW_CURRENT	1	/* I = 1mA */
 #define PM8XXX_LED_PWM_PERIOD		1000
 #define PM8XXX_LED_PWM_DUTY_MS		20
@@ -278,6 +393,25 @@ static struct pm8xxx_misc_platform_data apq8064_pm8921_misc_pdata = {
  */
 #define PM8XXX_PWM_CHANNEL_NONE		-1
 
+
+//20120328_kmh_sensor
+#ifdef CONFIG_3LED_SETTING
+static struct led_info pm8921_led_info_3led[] = {
+	{
+		.name		= "red",
+//		.default_trigger	= "ac-online",
+	},
+	{
+		.name		= "green",
+//		.default_trigger	= "battery-full",
+	},
+	{
+		.name		= "blue",
+//		.default_trigger	= "battery-charging",
+	},
+
+};
+#else
 static struct led_info pm8921_led_info[] = {
 	[0] = {
 		.name			= "led:red",
@@ -288,12 +422,48 @@ static struct led_info pm8921_led_info[] = {
 		.default_trigger	= "battery-full",
 	},
 };
+#endif
 
 static struct led_platform_data pm8921_led_core_pdata = {
+#ifdef CONFIG_3LED_SETTING
+	.num_leds = ARRAY_SIZE(pm8921_led_info_3led),
+	.leds = pm8921_led_info_3led,
+#else
 	.num_leds = ARRAY_SIZE(pm8921_led_info),
 	.leds = pm8921_led_info,
+#endif
+};
+// ++ p16092 add -140122:LED_BLINK_CONTROL  
+#if defined(CONFIG_SKY_EF52S_BOARD)||defined(CONFIG_SKY_EF52K_BOARD)||defined(CONFIG_SKY_EF52L_BOARD)||defined(CONFIG_SKY_EF52W_BOARD)
+static int pm8921_led0_pwm_duty_pcts[PM_PWM_LUT_SIZE-1] = {0, };
+
+static struct pm8xxx_pwm_duty_cycles pm8921_led0_pwm_duty_cycles = {
+	.duty_pcts = (int *)&pm8921_led0_pwm_duty_pcts,
+	.num_duty_pcts = ARRAY_SIZE(pm8921_led0_pwm_duty_pcts),
+	.duty_ms = PM8XXX_LED_PWM_DUTY_MS,
+	.start_idx = 1,
 };
 
+static int pm8921_led1_pwm_duty_pcts[PM_PWM_LUT_SIZE-1] = {0, };
+
+static struct pm8xxx_pwm_duty_cycles pm8921_led1_pwm_duty_cycles = {
+	.duty_pcts = (int *)&pm8921_led1_pwm_duty_pcts,
+	.num_duty_pcts = ARRAY_SIZE(pm8921_led1_pwm_duty_pcts),
+	.duty_ms = PM8XXX_LED_PWM_DUTY_MS,
+	.start_idx = 1,
+};
+
+static int pm8921_led2_pwm_duty_pcts[PM_PWM_LUT_SIZE-1] = {0, };
+
+static struct pm8xxx_pwm_duty_cycles pm8921_led2_pwm_duty_cycles = {
+	.duty_pcts = (int *)&pm8921_led2_pwm_duty_pcts,
+	.num_duty_pcts = ARRAY_SIZE(pm8921_led2_pwm_duty_pcts),
+	.duty_ms = PM8XXX_LED_PWM_DUTY_MS,
+	.start_idx = 1,
+};
+#endif 
+//--p16092 add -140122:LED_BLINK_CONTROL 
+#ifndef CONFIG_3LED_SETTING
 static int pm8921_led0_pwm_duty_pcts[56] = {
 	1, 4, 8, 12, 16, 20, 24, 28, 32, 36,
 	40, 44, 46, 52, 56, 60, 64, 68, 72, 76,
@@ -324,21 +494,73 @@ static struct pm8xxx_led_config pm8921_led_configs[] = {
 		.pwm_period_us = PM8XXX_LED_PWM_PERIOD,
 		.pwm_duty_cycles = &pm8921_led0_pwm_duty_cycles,
 	},
-	[1] = {
-		.id = PM8XXX_ID_LED_1,
-		.mode = PM8XXX_LED_MODE_PWM1,
+};
+#else 
+// ++ p16092 add -140122:LED_BLINK_CONTROL  
+static struct pm8xxx_led_config pm8921_led_configs_3led[] = {
+#if defined(CONFIG_SKY_EF52S_BOARD)||defined(CONFIG_SKY_EF52K_BOARD)||defined(CONFIG_SKY_EF52L_BOARD)||defined(CONFIG_SKY_EF52W_BOARD)
+[0] = {
+		.id = PM8XXX_ID_LED_0,
+		.mode = PM8XXX_LED_MODE_PWM3,
 		.max_current = PM8921_LC_LED_MAX_CURRENT,
-		.pwm_channel = 4,
+		.pwm_channel = 6,//RED
 		.pwm_period_us = PM8XXX_LED_PWM_PERIOD,
 		.pwm_duty_cycles = &pm8921_led0_pwm_duty_cycles,
 	},
+#else
+	[0] = {
+		.id = PM8XXX_ID_LED_0,
+		.mode = PM8XXX_LED_MODE_MANUAL,
+		.max_current = PM8921_LC_LED_MAX_CURRENT,
+	},
+#endif
+#if defined(CONFIG_SKY_EF52S_BOARD)||defined(CONFIG_SKY_EF52K_BOARD)||defined(CONFIG_SKY_EF52L_BOARD)||defined(CONFIG_SKY_EF52W_BOARD)
+	[1] = {
+		.id = PM8XXX_ID_LED_1,
+		.mode = PM8XXX_LED_MODE_PWM2,
+		.max_current = PM8921_LC_LED_MAX_CURRENT,
+		.pwm_channel = 5,//GREEN
+		.pwm_period_us = PM8XXX_LED_PWM_PERIOD,
+		.pwm_duty_cycles = &pm8921_led1_pwm_duty_cycles,
+	},
+#else
+	[1] = {
+		.id = PM8XXX_ID_LED_1,
+		.mode = PM8XXX_LED_MODE_MANUAL,
+		.max_current = PM8921_LC_LED_MAX_CURRENT,
+	},
+#endif
+#if  defined(CONFIG_SKY_EF52S_BOARD)||defined(CONFIG_SKY_EF52K_BOARD)||defined(CONFIG_SKY_EF52L_BOARD)||defined(CONFIG_SKY_EF52W_BOARD)
+	[2] = {
+		.id = PM8XXX_ID_LED_2,
+		.mode = PM8XXX_LED_MODE_PWM1,
+		.max_current = PM8921_LC_LED_MAX_CURRENT,
+		.pwm_channel = 4,//BLUE
+		.pwm_period_us = PM8XXX_LED_PWM_PERIOD,
+		.pwm_duty_cycles = &pm8921_led2_pwm_duty_cycles,
+	},
+#else
+	[2] = {
+		.id = PM8XXX_ID_LED_2,
+		.mode = PM8XXX_LED_MODE_MANUAL,
+		.max_current = PM8921_LC_LED_MAX_CURRENT,
+	},
+#endif
 };
+//--p16092 add -140122:LED_BLINK_CONTROL 
+#endif
 
 static struct pm8xxx_led_platform_data apq8064_pm8921_leds_pdata = {
 		.led_core = &pm8921_led_core_pdata,
+#ifndef CONFIG_3LED_SETTING
 		.configs = pm8921_led_configs,
 		.num_configs = ARRAY_SIZE(pm8921_led_configs),
+#else
+		.configs = pm8921_led_configs_3led,
+		.num_configs = ARRAY_SIZE(pm8921_led_configs_3led),
+#endif
 };
+
 
 static struct pm8xxx_adc_amux apq8064_pm8921_adc_channels_data[] = {
 	{"vcoin", CHANNEL_VCOIN, CHAN_PATH_SCALING2, AMUX_RSV1,
@@ -369,6 +591,10 @@ static struct pm8xxx_adc_amux apq8064_pm8921_adc_channels_data[] = {
 		ADC_DECIMATION_TYPE2, ADC_SCALE_DEFAULT},
 	{"xo_therm", CHANNEL_MUXOFF, CHAN_PATH_SCALING1, AMUX_RSV0,
 		ADC_DECIMATION_TYPE2, ADC_SCALE_XOTHERM},
+#if defined(CONFIG_PANTECH_SMB347_CHARGER)
+	{"vchg", ADC_MPP_1_AMUX6, CHAN_PATH_SCALING1, AMUX_RSV1,
+		ADC_DECIMATION_TYPE2, ADC_SCALE_DEFAULT},
+#endif
 };
 
 static struct pm8xxx_adc_properties apq8064_pm8921_adc_data = {
@@ -415,6 +641,31 @@ static int apq8064_pm8921_therm_mitigation[] = {
 	325,
 };
 
+#if defined(CONFIG_PANTECH_SMB347_CHARGER)
+#define MAX_VOLTAGE_MV          4350
+#define CHG_TERM_MA		100
+static struct pm8921_charger_platform_data
+apq8064_pm8921_chg_pdata __devinitdata = {
+	.update_time		= 60000,
+	.max_voltage		= MAX_VOLTAGE_MV,
+	.min_voltage		= 3500,
+	.uvd_thresh_voltage	= 4050,
+	.resume_voltage_delta	= 100,
+	.term_current		= CHG_TERM_MA,
+	.cool_temp		= 0,
+	.warm_temp		= 45,
+	.temp_check_period	= 1,
+	.max_bat_chg_current	= 1800,
+	.cool_bat_chg_current	= 500,
+	.warm_bat_chg_current	= 500,
+	.cool_bat_voltage	= 4100,
+	.warm_bat_voltage	= 4100,
+	.thermal_mitigation	= apq8064_pm8921_therm_mitigation,
+	.thermal_levels		= ARRAY_SIZE(apq8064_pm8921_therm_mitigation),
+	.cold_thr = 0,
+       .hot_thr = 1,
+};
+#else
 #define MAX_VOLTAGE_MV          4200
 #define CHG_TERM_MA		100
 static struct pm8921_charger_platform_data
@@ -441,6 +692,7 @@ apq8064_pm8921_chg_pdata __devinitdata = {
 	.rconn_mohm		= 18,
 	.enable_tcxo_warmup_delay = true,
 };
+#endif
 
 static struct pm8xxx_ccadc_platform_data
 apq8064_pm8xxx_ccadc_pdata = {
@@ -471,6 +723,27 @@ apq8064_pm8921_bms_pdata __devinitdata = {
 	.min_fcc_learning_samples	= 5,
 };
 
+#if defined(CONFIG_MACH_APQ8064_EF48S) ||defined(CONFIG_MACH_APQ8064_EF49K) || defined(CONFIG_MACH_APQ8064_EF50L) || defined(CONFIG_MACH_APQ8064_EF51S) || defined(CONFIG_MACH_APQ8064_EF51K) || defined(CONFIG_MACH_APQ8064_EF51L) || defined(CONFIG_MACH_APQ8064_EF52S) || defined(CONFIG_MACH_APQ8064_EF52K) || defined(CONFIG_MACH_APQ8064_EF52L) || defined(CONFIG_MACH_APQ8064_EF52W)
+static struct pm8xxx_vibrator_platform_data
+apq8064_pm8xxx_vib_pdata = {
+                .initial_vibrate_ms =500,
+                .max_timeout_ms =15000,
+                .level_mV = 3000,
+};
+#endif
+#if defined(CONFIG_SKY_EF52S_BOARD)||defined(CONFIG_SKY_EF52K_BOARD)||defined(CONFIG_SKY_EF52L_BOARD)||defined(CONFIG_SKY_EF52W_BOARD)
+
+/**
+ * PM8XXX_PWM_DTEST_CHANNEL_NONE shall be used when no LPG
+ * channel should be in DTEST mode.
+ */
+
+#define PM8XXX_PWM_DTEST_CHANNEL_NONE   (-1)
+
+static struct pm8xxx_pwm_platform_data pm8xxx_pwm_pdata = {
+	.dtest_channel	= PM8XXX_PWM_DTEST_CHANNEL_NONE,
+};
+#endif
 static struct pm8921_platform_data
 apq8064_pm8921_platform_data __devinitdata = {
 	.irq_pdata		= &apq8064_pm8921_irq_pdata,
@@ -484,6 +757,12 @@ apq8064_pm8921_platform_data __devinitdata = {
 	.charger_pdata		= &apq8064_pm8921_chg_pdata,
 	.bms_pdata		= &apq8064_pm8921_bms_pdata,
 	.ccadc_pdata		= &apq8064_pm8xxx_ccadc_pdata,
+#if defined(CONFIG_MACH_APQ8064_EF48S) || defined(CONFIG_MACH_APQ8064_EF49K) || defined(CONFIG_MACH_APQ8064_EF50L) || defined(CONFIG_MACH_APQ8064_EF51S) || defined(CONFIG_MACH_APQ8064_EF51K) || defined(CONFIG_MACH_APQ8064_EF51L) || defined(CONFIG_MACH_APQ8064_EF52S) || defined(CONFIG_MACH_APQ8064_EF52K) || defined(CONFIG_MACH_APQ8064_EF52L) || defined(CONFIG_MACH_APQ8064_EF52W)
+	 .vibrator_pdata         = &apq8064_pm8xxx_vib_pdata,
+#endif
+#if defined(CONFIG_SKY_EF52S_BOARD)||defined(CONFIG_SKY_EF52K_BOARD)||defined(CONFIG_SKY_EF52L_BOARD)||defined(CONFIG_SKY_EF52W_BOARD)
+	.pwm_pdata		= &pm8xxx_pwm_pdata,
+#endif
 };
 
 static struct pm8xxx_irq_platform_data
