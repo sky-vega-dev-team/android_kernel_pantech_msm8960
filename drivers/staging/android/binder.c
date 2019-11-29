@@ -1405,7 +1405,6 @@ static void binder_transaction(struct binder_proc *proc,
 	struct binder_transaction *t;
 	struct binder_work *tcomplete;
 	size_t *offp, *off_end;
-	size_t off_min;
 	struct binder_proc *target_proc;
 	struct binder_thread *target_thread = NULL;
 	struct binder_node *target_node = NULL;
@@ -1616,12 +1615,12 @@ static void binder_transaction(struct binder_proc *proc,
 		if (*offp > t->buffer->data_size - sizeof(*fp) ||
 		    *offp < off_min ||
 		    t->buffer->data_size < sizeof(*fp) ||
-		    !IS_ALIGNED(*offp, sizeof(void *))) {
-			binder_user_error("binder: %d:%d got transaction with invalid offset, %zd (min %zd, max %zd)\n",
-					  proc->pid, thread->pid, *offp,
-					  off_min,
-					  t->buffer->data_size -
-					  sizeof(*fp));
+		    !IS_ALIGNED(*offp, sizeof(u32))) {
+			binder_user_error("%d:%d got transaction with invalid offset, %lld (min %lld, max %lld)\n",
+					  proc->pid, thread->pid, (u64)*offp,
+					  (u64)off_min,
+					  (u64)(t->buffer->data_size -
+					  sizeof(*fp)));
 			return_error = BR_FAILED_REPLY;
 			goto err_bad_offset;
 		}

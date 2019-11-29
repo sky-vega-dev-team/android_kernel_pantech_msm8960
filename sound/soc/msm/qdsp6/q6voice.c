@@ -1471,7 +1471,7 @@ static int voice_send_tty_mode_cmd(struct voice_data *v)
 		mvm_tty_mode_cmd.hdr.opcode = VSS_ISTREAM_CMD_SET_TTY_MODE;
 		mvm_tty_mode_cmd.tty_mode.mode = v->tty_mode;
 		pr_debug("tty mode =%d\n", mvm_tty_mode_cmd.tty_mode.mode);
-
+ 
 		v->mvm_state = CMD_STATUS_FAIL;
 		ret = apr_send_pkt(apr_mvm, (uint32_t *) &mvm_tty_mode_cmd);
 		if (ret < 0) {
@@ -1487,6 +1487,7 @@ static int voice_send_tty_mode_cmd(struct voice_data *v)
 			goto fail;
 		}
 	}
+
 	return 0;
 fail:
 	return -EINVAL;
@@ -4120,13 +4121,12 @@ int voc_enable_cvp(uint16_t session_id)
 	int ret = 0;
 
 	if (v == NULL) {
-		pr_err("%s: invalid session_id 0x%x\n", __func__, session_id);
 
+		pr_err("%s: invalid session_id 0x%x\n", __func__, session_id);
 		return -EINVAL;
 	}
 
 	mutex_lock(&v->lock);
-
 	if (v->voc_state == VOC_CHANGE) {
 
 		if (common.ec_ref_ext == true) {
@@ -4144,12 +4144,13 @@ int voc_enable_cvp(uint16_t session_id)
 				goto fail;
 			}
 		}
-		/* send cvp and vol cal */
+
 		ret = voice_send_cvp_map_memory_cmd(v);
 		if (!ret) {
 			voice_send_cvp_register_cal_cmd(v);
 			voice_send_cvp_register_vol_cal_table_cmd(v);
 		}
+<<<<<<< HEAD
 #if QVOICE
 		ret = qvoice_send_cal(v);
 #endif
@@ -4177,25 +4178,25 @@ int voc_enable_cvp(uint16_t session_id)
 			voice_send_set_pp_enable_cmd(v,
 						MODULE_ID_VOICE_MODULE_FENS,
 						v->fens_enable);
+=======
+>>>>>>> d9cef3a2a7b044ed75ddf47ec0e76c2a47a0fa3d
 
-		get_sidetone_cal(&sidetone_cal_data);
-		if (v->dev_tx.port_id != RT_PROXY_PORT_001_TX &&
-			v->dev_rx.port_id != RT_PROXY_PORT_001_RX) {
-			ret = afe_sidetone(v->dev_tx.port_id,
-					v->dev_rx.port_id,
-					sidetone_cal_data.enable,
-					sidetone_cal_data.gain);
-
-			if (ret < 0)
-				pr_err("%s: AFE command sidetone failed\n",
-					__func__);
+		ret = voice_send_start_voice_cmd(v);
+		if (ret < 0) {
+			pr_err("%s: Fail in sending START_VOICE, ret=%d\n",
+				__func__, ret);
+			goto done;
 		}
 
 		rtac_add_voice(voice_get_cvs_handle(v),
-			voice_get_cvp_handle(v),
-			v->dev_rx.port_id, v->dev_tx.port_id,
-			v->session_id);
+				voice_get_cvp_handle(v),
+				v->dev_rx.port_id, v->dev_tx.port_id,
+				v->session_id);
+
 		v->voc_state = VOC_RUN;
+	} else {
+		pr_debug("%s: called in voc state=%d, No_OP\n",
+			__func__, v->voc_state);
 	}
 
 fail:
