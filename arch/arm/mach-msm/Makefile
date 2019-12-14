@@ -427,3 +427,4 @@ obj-$(CONFIG_MSM_CPU_PWRCTL) +=  msm_cpu_pwrctl.o
 obj-$(CONFIG_ARCH_RANDOM) += early_random.o
 
 obj-$(CONFIG_PANTECH_ERR_CRASH_LOGGING) += pantech_sys.o pantech_restart.o pantech_apanic.o pantech_debug.o
+obj-$(CONFIG_FORCE_FAST_CHARGE) += fastchg.o
