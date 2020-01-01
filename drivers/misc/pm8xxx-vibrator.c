@@ -10,7 +10,6 @@
  * GNU General Public License for more details.
  */
 
-#include <linux/device.h>
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
@@ -21,7 +20,20 @@
 #include <linux/mfd/pm8xxx/core.h>
 #include <linux/mfd/pm8xxx/vibrator.h>
 
+#include "../staging/iio/sysfs.h"
+
 #include "../staging/android/timed_output.h"
+
+#define FEATURE_LEVEL_CONTROL
+
+/* vibrator debug */
+static int DebugON=0;
+#define dbg(fmt, args...) if(DebugON)printk("[VIB]" fmt, ##args)
+
+#define dbg_func_in()		dbg("[+] %s\n", __func__)
+#define dbg_func_out()		dbg("[-] %s\n", __func__)
+#define dbg_line()		dbg("line : %d | func : %s\n", __LINE__, __func__)
+/* vibrator debug */
 
 #define VIB_DRV			0x4A
 
@@ -32,6 +44,8 @@
 
 #define VIB_MAX_LEVEL_mV	3100
 #define VIB_MIN_LEVEL_mV	1200
+
+static unsigned int vib_level_range=(VIB_MAX_LEVEL_mV - VIB_MIN_LEVEL_mV) / 100;
 
 struct pm8xxx_vib {
 	struct hrtimer vib_timer;
@@ -46,47 +60,6 @@ struct pm8xxx_vib {
 };
 
 static struct pm8xxx_vib *vib_dev;
-static ssize_t pm8xxx_level_show(struct device *dev,
-					struct device_attribute *attr,
-					char *buf)
-{
-	struct timed_output_dev *tdev = dev_get_drvdata(dev);
-	struct pm8xxx_vib *vib = container_of(tdev, struct pm8xxx_vib,
-							 timed_dev);
-
-	return scnprintf(buf, PAGE_SIZE, "%d\n", vib->level);
-}
-
-static ssize_t pm8xxx_level_store(struct device *dev,
-					struct device_attribute *attr,
-					const char *buf, size_t count)
-{
-	struct timed_output_dev *tdev = dev_get_drvdata(dev);
-	struct pm8xxx_vib *vib = container_of(tdev, struct pm8xxx_vib,
-							 timed_dev);
-	int val;
-	int rc;
-
-	rc = kstrtoint(buf, 10, &val);
-	if (rc) {
-		pr_err("%s: error getting level\n", __func__);
-		return -EINVAL;
-	}
-
-	if (val < VIB_MIN_LEVEL_mV / 100) {
-		pr_err("%s: level %d not in range (%d - %d), using min.", __func__, val, VIB_MIN_LEVEL_mV / 100, VIB_MAX_LEVEL_mV / 100);
-		val = VIB_MIN_LEVEL_mV / 100;
-	} else if (val > VIB_MAX_LEVEL_mV / 100) {
-		pr_err("%s: level %d not in range (%d - %d), using max.", __func__, val, VIB_MIN_LEVEL_mV / 100, VIB_MAX_LEVEL_mV / 100);
-		val = VIB_MAX_LEVEL_mV / 100;
-	}
-
-	vib->level = val;
-
-	return strnlen(buf, count);
-}
-
-static DEVICE_ATTR(amp, S_IRUGO | S_IWUSR, pm8xxx_level_show, pm8xxx_level_store);
 
 int pm8xxx_vibrator_config(struct pm8xxx_vib_config *vib_config)
 {
@@ -162,7 +135,11 @@ static int pm8xxx_vib_set(struct pm8xxx_vib *vib, int on)
 	u8 val;
 
 	if (on) {
-                val = 0;
+#ifdef FEATURE_LEVEL_CONTROL
+		val= 0;
+#else
+		val = vib->reg_vib_drv;
+#endif		
 		val |= ((vib->level << VIB_DRV_SEL_SHIFT) & VIB_DRV_SEL_MASK);
 		rc = pm8xxx_vib_write_u8(vib, val, VIB_DRV);
 		if (rc < 0)
@@ -182,6 +159,44 @@ static int pm8xxx_vib_set(struct pm8xxx_vib *vib, int on)
 }
 
 static void pm8xxx_vib_enable(struct timed_output_dev *dev, int value)
+#ifdef FEATURE_LEVEL_CONTROL
+{
+	struct pm8xxx_vib *vib = container_of(dev, struct pm8xxx_vib,
+					 timed_dev);
+	unsigned long flags;
+	unsigned short level;
+	long timeoutms;
+
+retry:
+	spin_lock_irqsave(&vib->lock, flags);
+	if (hrtimer_try_to_cancel(&vib->vib_timer) < 0) {
+		spin_unlock_irqrestore(&vib->lock, flags);
+		cpu_relax();
+		goto retry;
+	}
+
+	level = 31;
+	timeoutms = value;
+
+	vib->level = level;
+	
+	dbg("[VIB]level=%d / timeoutms=%ld\n", level, timeoutms);
+
+	if (timeoutms == 0)
+		vib->state = 0;
+	else {	
+		timeoutms = (timeoutms > vib->pdata->max_timeout_ms ?
+				 0x7FFFFFFF : timeoutms);
+		vib->state = 1;
+		dbg("timeoutms = %ld\n", timeoutms);
+		hrtimer_start(&vib->vib_timer,
+			      ktime_set(timeoutms / 1000, (timeoutms % 1000) * 1000000),
+			      HRTIMER_MODE_REL);
+	}
+	spin_unlock_irqrestore(&vib->lock, flags);
+	pm8xxx_vib_set(vib, vib->state);
+}
+#else
 {
 	struct pm8xxx_vib *vib = container_of(dev, struct pm8xxx_vib,
 					 timed_dev);
@@ -195,9 +210,9 @@ retry:
 		goto retry;
 	}
 
-	if (value == 0) {
+	if (value == 0)
 		vib->state = 0;
-	} else {
+	else {
 		value = (value > vib->pdata->max_timeout_ms ?
 				 vib->pdata->max_timeout_ms : value);
 		vib->state = 1;
@@ -208,6 +223,7 @@ retry:
 	spin_unlock_irqrestore(&vib->lock, flags);
 	schedule_work(&vib->work);
 }
+#endif
 
 static void pm8xxx_vib_update(struct work_struct *work)
 {
@@ -240,6 +256,36 @@ static enum hrtimer_restart pm8xxx_vib_timer_func(struct hrtimer *timer)
 	return HRTIMER_NORESTART;
 }
 
+static ssize_t pm8xxx_vib_voltage_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	int level = vib_dev->level ;
+
+	// convert to percentage form
+	level = (level - VIB_MIN_LEVEL_mV/100) * 100 / vib_level_range ; 
+
+	return sprintf(buf, "%d\n", level);
+}
+
+static ssize_t pm8xxx_vib_voltage_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+        int level_multiply;
+	sscanf(buf, "%d", &level_multiply);
+	if (level_multiply > 100)
+		level_multiply = 100;
+	else if (level_multiply < 0)
+		level_multiply = 0;
+
+	vib_dev->level = VIB_MIN_LEVEL_mV/100 + vib_level_range * level_multiply / 100;
+
+	return size;
+}
+
+static struct device_attribute pm8xxx_vib_devie_attrs[] = {
+        __ATTR(amp, S_IWUGO | S_IRUGO, pm8xxx_vib_voltage_show, pm8xxx_vib_voltage_store),
+};
+
 #ifdef CONFIG_PM
 static int pm8xxx_vib_suspend(struct device *dev)
 {
@@ -266,7 +312,9 @@ static int __devinit pm8xxx_vib_probe(struct platform_device *pdev)
 	struct pm8xxx_vib *vib;
 	u8 val;
 	int rc;
-
+	int i;
+	dbg_func_in ();
+	
 	if (!pdata)
 		return -EINVAL;
 
@@ -312,19 +360,33 @@ static int __devinit pm8xxx_vib_probe(struct platform_device *pdev)
 	if (rc < 0)
 		goto err_read_vib;
 
-	rc = device_create_file(vib->dev, &dev_attr_amp);
-	if (rc < 0)
-		goto err_read_vib;
 	pm8xxx_vib_enable(&vib->timed_dev, pdata->initial_vibrate_ms);
 
 	platform_set_drvdata(pdev, vib);
 
 	vib_dev = vib;
+	for (i = 0; i < ARRAY_SIZE(pm8xxx_vib_devie_attrs); i++) {
+		rc = device_create_file(vib->dev,
+				&pm8xxx_vib_devie_attrs[i]);
+		if (rc < 0) {
+			pr_err("%s: failed to create sysfs\n", __func__);
+			goto err_sysfs;
+		}
+	}
 
 	return 0;
 
+	dbg_func_out ();
+
 err_read_vib:
 	kfree(vib);
+	return rc;
+
+err_sysfs:
+	for (; i >= 0; i--) {
+		device_remove_file(vib->dev,
+				&pm8xxx_vib_devie_attrs[i]);
+	}
 	return rc;
 }
 
@@ -355,7 +417,12 @@ static struct platform_driver pm8xxx_vib_driver = {
 
 static int __init pm8xxx_vib_init(void)
 {
+	dbg_func_in();
+
 	return platform_driver_register(&pm8xxx_vib_driver);
+	
+	dbg_func_out();
+
 }
 module_init(pm8xxx_vib_init);
 
