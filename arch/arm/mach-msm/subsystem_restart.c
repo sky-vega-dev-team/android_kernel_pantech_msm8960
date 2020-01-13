@@ -629,7 +629,7 @@ struct excute_work {
 struct excute_work *ssr_noti_work;
 #endif
 
-#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
+#ifdef CONFIG_PANTECH_DEBUG
 extern int wifissr;
 #endif
 int subsystem_restart_dev(struct subsys_device *dev)
@@ -647,14 +647,12 @@ int subsystem_restart_dev(struct subsys_device *dev)
 		return -EBUSY;
 	}
 
-#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
-	// wifi ssrmode check
-	if( 1 == wifissr &&
-		(!strncmp(name, "wcnss", 5) || !strncmp(name, "riva", 4))) {
-		restart_level = RESET_SUBSYS_INDEPENDENT;
-	} else {
-		restart_level = RESET_SOC;
-	}
+    // wifi ssrmode check
+#ifdef CONFIG_PANTECH_DEBUG
+    if( 1 == wifissr &&
+        (!strncmp(name, "wcnss", 5) || !strncmp(name, "riva", 4)) )
+#else
+    if (!strncmp(name, "wcnss", 5) || !strncmp(name, "riva", 4))
 #endif
 
 	pr_info("Restart sequence requested for %s, restart_level = %d.\n",
