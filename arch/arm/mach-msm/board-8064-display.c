@@ -28,9 +28,56 @@
 #include "devices.h"
 #include "board-8064.h"
 
+/*************** LCD Common Macro [by Cho.kyoung.ku] *************************/
+#define FEATURE_SKYDISP_FUSION3_PANTECH_DISPLAY  // 20121008, kkcho, lcd common macro
+#define FEATURE_SKYDISP_ENABLE_HDMI_FOR_WFD  // 20110508, kkcho, enable for WFD
+/***************************************************************************/
+
+/*************** LCD Model Macro [by Cho.kyoung.ku] *************************/
+#define FEATURE_SKYDISP_CONT_SPLASH_SKY_BOOT_IMAGE  // 20120509, kkcho, for cont_splash_boot_image from lk
+#if ((defined(CONFIG_SKY_EF52S_BOARD)||defined(CONFIG_SKY_EF52K_BOARD)) && (CONFIG_BOARD_VER >= CONFIG_TP20)) || (defined(CONFIG_SKY_EF52L_BOARD)&& (CONFIG_BOARD_VER >= CONFIG_TP10)) || (defined(CONFIG_SKY_EF52W_BOARD)&& (CONFIG_BOARD_VER >= CONFIG_WS10))
+#define FEATURE_SKYDISP_BOOT_ANI_SKIP_BUG_FIX // 20130103, kkcho, Bug-Fix :no display boot_ani at some-device
+#endif
+
+#if defined(CONFIG_SKY_EF48S_BOARD)||defined(CONFIG_SKY_EF49K_BOARD)||defined(CONFIG_SKY_EF50L_BOARD)
+#define FEATURE_SKYDISP_SHARP_ROHM_HD // 20121008, kkcho, EF48 series
+#define LCD_VCI_EN 82
+static bool vci_bootup_set;
+#elif defined(CONFIG_SKY_EF51S_BOARD) || defined(CONFIG_SKY_EF51K_BOARD) || defined(CONFIG_SKY_EF51L_BOARD)
+#define FEATURE_SKYDISP_SHARP_RENESAS_FHD //20121008, kkcho, EF51 series
+#define LCD_VCI_EN 82
+static bool vci_bootup_set;
+#elif defined(CONFIG_SKY_EF52S_BOARD)||defined(CONFIG_SKY_EF52K_BOARD)||defined(CONFIG_SKY_EF52L_BOARD)||defined(CONFIG_SKY_EF52W_BOARD)
+#define FEATURE_SKYDISP_JDI_ORISE_INCELL_HD //20121008, kkcho, EF52 series
+// 20130311 shkwak : Note - msleep always takes 20 ms delay regardless of the parameters
+// PANTECH_LCD_RESET_TWICE feature wrote considering msleep delay .. 
+#define PANTECH_LCD_RESET_TWICE //20130311 shkwak, for stable lcd init, sony request 
+#ifdef FEATURE_SKYDISP_BOOT_ANI_SKIP_BUG_FIX
+#define LCD_VCI_EN 28
+static bool mipi_reset_init_skip;  
+static bool mipi_reset_set_skip;  
+#define LCD_VCI_EN_OLD 14  // kkcho_temp
+#else
+#define LCD_VCI_EN 14
+#endif
+#endif 
+/***************************************************************************/
+
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
+#ifdef FEATURE_SKYDISP_FUSION3_PANTECH_DISPLAY
+#ifdef FEATURE_SKYDISP_SHARP_ROHM_HD
+#define MSM_FB_PRIM_BUF_SIZE (1280 * 736 * 4 * 3) /* 4 bpp x 2 pages */
+#endif
+#ifdef FEATURE_SKYDISP_SHARP_RENESAS_FHD
+#define MSM_FB_PRIM_BUF_SIZE roundup(1920 * 1088 * 4 * 3, 0x10000) /* 4 bpp x 2 pages */
+#endif
+#ifdef FEATURE_SKYDISP_JDI_ORISE_INCELL_HD
+#define MSM_FB_PRIM_BUF_SIZE (1280 * 736 * 4 * 3) /* 4 bpp x 2 pages */
+#endif
+#else
 /* prim = 1366 x 768 x 3(bpp) x 3(pages) */
 #define MSM_FB_PRIM_BUF_SIZE roundup(1920 * 1088 * 4 * 3, 0x10000)
+#endif
 #else
 /* prim = 1366 x 768 x 3(bpp) x 2(pages) */
 #define MSM_FB_PRIM_BUF_SIZE roundup(1920 * 1088 * 4 * 2, 0x10000)
@@ -39,7 +86,19 @@
 #define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE, 4096)
 
 #ifdef CONFIG_FB_MSM_OVERLAY0_WRITEBACK
+#ifdef FEATURE_SKYDISP_FUSION3_PANTECH_DISPLAY
+#ifdef FEATURE_SKYDISP_SHARP_ROHM_HD
+#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup((1280 * 736 * 3 * 2), 4096) 
+#endif
+#ifdef FEATURE_SKYDISP_SHARP_RENESAS_FHD
+#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup((1920 * 1088 * 3 * 2), 4096)  
+#endif
+#ifdef FEATURE_SKYDISP_JDI_ORISE_INCELL_HD
+#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup((1280 * 736 * 3 * 2), 4096)
+#endif
+#else
 #define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup((1376 * 768 * 3 * 2), 4096)
+#endif
 #else
 #define MSM_FB_OVERLAY0_WRITEBACK_SIZE (0)
 #endif  /* CONFIG_FB_MSM_OVERLAY0_WRITEBACK */
@@ -247,15 +306,32 @@ static struct msm_bus_scale_pdata mdp_bus_scale_pdata = {
 static struct msm_panel_common_pdata mdp_pdata = {
 	.gpio = MDP_VSYNC_GPIO,
 	.mdp_max_clk = 266667000,
+#if defined(CONFIG_MACH_APQ8064_EF51S) || defined(CONFIG_MACH_APQ8064_EF51K) || defined(CONFIG_MACH_APQ8064_EF51L)
+#ifdef CONFIG_F_SKYDISP_FIX_MDP_UNDERRUN
+	.mdp_max_bw = 3080000000UL, 
+	.mdp_bw_ab_factor = 160,
+	.mdp_bw_ib_factor = 170,
+#else
 	.mdp_max_bw = 2000000000,
 	.mdp_bw_ab_factor = 115,
 	.mdp_bw_ib_factor = 150,
+#endif
+#else
+	.mdp_max_bw = 2000000000,
+	.mdp_bw_ab_factor = 115,
+	.mdp_bw_ib_factor = 150,
+#endif
 	.mdp_bus_scale_table = &mdp_bus_scale_pdata,
 	.mdp_rev = MDP_REV_44,
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
 	.mem_hid = BIT(ION_CP_MM_HEAP_ID),
 #else
 	.mem_hid = MEMTYPE_EBI1,
+#endif
+#ifdef FEATURE_SKYDISP_CONT_SPLASH_SKY_BOOT_IMAGE
+	.cont_splash_enabled = 1,
+#else
+	.cont_splash_enabled = 0,
 #endif
 	.mdp_iommu_split_domain = 1,
 };
@@ -343,11 +419,983 @@ static struct platform_device wfd_device = {
 #endif
 
 /* HDMI related GPIOs */
+#if !(defined(CONFIG_MACH_APQ8064_EF48S) ||defined(CONFIG_MACH_APQ8064_EF49K) || defined(CONFIG_MACH_APQ8064_EF50L) || defined(CONFIG_SKY_EF52S_BOARD) || defined(CONFIG_SKY_EF52K_BOARD) || defined(CONFIG_SKY_EF52L_BOARD) || defined(CONFIG_SKY_EF52W_BOARD)) 
 #define HDMI_CEC_VAR_GPIO	69
+#endif
 #define HDMI_DDC_CLK_GPIO	70
 #define HDMI_DDC_DATA_GPIO	71
+#if defined(CONFIG_SKY_EF51S_BOARD) || defined(CONFIG_SKY_EF51K_BOARD) || defined(CONFIG_SKY_EF51L_BOARD) || defined(CONFIG_SKY_EF52S_BOARD) || defined(CONFIG_SKY_EF52K_BOARD) || defined(CONFIG_SKY_EF52L_BOARD) || defined(CONFIG_SKY_EF52W_BOARD)
+#define HDMI_HPD_GPIO		33 // 72 - backtouch interrupt gpio
+#else
 #define HDMI_HPD_GPIO		72
+#endif
 
+#ifdef FEATURE_SKYDISP_FUSION3_PANTECH_DISPLAY 
+int gpio_lcd_mipi_reset = PM8921_GPIO_PM_TO_SYS(42);
+int gpio_lcd_bl_en      = PM8921_GPIO_PM_TO_SYS(14);
+int gpio_lcd_bl_ctl     = PM8921_GPIO_PM_TO_SYS(26);
+
+#ifdef FEATURE_SKYDISP_SHARP_ROHM_HD
+//EF48/49/50
+static bool dsi_power_on;
+static struct regulator *reg_lvs7, *reg_l2, *reg_l11, *reg_ext_3p3v;
+#if defined(CONFIG_MACH_APQ8064_EF48S) ||defined(CONFIG_MACH_APQ8064_EF49K) || defined(CONFIG_MACH_APQ8064_EF50L)
+#ifdef CONFIG_F_SKYDISP_LCD_SHUTDOWN
+extern int is_chg_notify_lcd(void);
+#endif
+#endif
+static int mipi_dsi_panel_power(int on)
+{
+	static int mpp3;
+	int rc;
+
+	struct pm_gpio gpio_lcd_mipi_reset_param = {
+		.direction = PM_GPIO_DIR_OUT,
+		.output_buffer = PM_GPIO_OUT_BUF_CMOS,
+		.output_value = 0,
+		.pull = PM_GPIO_PULL_NO,
+		.vin_sel = 2,
+		.out_strength = PM_GPIO_STRENGTH_HIGH,
+		.function = PM_GPIO_FUNC_PAIRED,
+		.inv_int_pol = 0,
+		.disable_pin = 0,
+	};
+
+	struct pm_gpio gpio_lcd_bl_en_param = {
+		.direction = PM_GPIO_DIR_OUT,
+		.output_buffer = PM_GPIO_OUT_BUF_CMOS,
+		.output_value = 0,
+		.pull = PM_GPIO_PULL_NO,
+		.vin_sel = 2,
+		.out_strength = PM_GPIO_STRENGTH_HIGH,
+		.function = PM_GPIO_FUNC_NORMAL,
+		.inv_int_pol = 0,
+		.disable_pin = 0,
+	};
+
+	    struct pm_gpio gpio_lcd_bl_ctl_param = {
+		.direction = PM_GPIO_DIR_OUT,
+		.output_buffer = PM_GPIO_OUT_BUF_CMOS,
+		.output_value = 0,
+		.pull = PM_GPIO_PULL_NO,
+		.vin_sel = 2,
+		.out_strength = PM_GPIO_STRENGTH_HIGH,
+		.function = PM_GPIO_FUNC_NORMAL,
+		.inv_int_pol = 0,
+		.disable_pin = 0,
+	};
+
+	//printk(KERN_ERR "[LCD]+%s  on=%d\n", __func__, on);
+	pr_debug("%s: on=%d\n", __func__, on);
+
+	if (!dsi_power_on) {
+		reg_lvs7 = regulator_get(&msm_mipi_dsi1_device.dev,
+				"dsi1_vddio");
+		if (IS_ERR_OR_NULL(reg_lvs7)) {
+			pr_err("could not get 8921_lvs7, rc = %ld\n",
+				PTR_ERR(reg_lvs7));
+			return -ENODEV;
+		}
+
+		reg_l2 = regulator_get(&msm_mipi_dsi1_device.dev,
+				"dsi1_pll_vdda");
+		if (IS_ERR_OR_NULL(reg_l2)) {
+			pr_err("could not get 8921_l2, rc = %ld\n",
+				PTR_ERR(reg_l2));
+			return -ENODEV;
+		}
+
+		rc = regulator_set_voltage(reg_l2, 1200000, 1200000);
+		if (rc) {
+			pr_err("set_voltage l2 failed, rc=%d\n", rc);
+			return -EINVAL;
+		}
+		reg_l11 = regulator_get(&msm_mipi_dsi1_device.dev,
+						"dsi1_avdd");
+		if (IS_ERR(reg_l11)) {
+				pr_err("could not get 8921_l11, rc = %ld\n",
+						PTR_ERR(reg_l11));
+				return -ENODEV;
+		}
+
+		rc = regulator_set_voltage(reg_l11, 2850000, 2850000);
+
+		if (rc) {
+				pr_err("set_voltage l11 failed, rc=%d\n", rc);
+				return -EINVAL;
+		}
+
+		if (machine_is_apq8064_liquid()) {
+			reg_ext_3p3v = regulator_get(&msm_mipi_dsi1_device.dev,
+				"dsi1_vccs_3p3v");
+			if (IS_ERR_OR_NULL(reg_ext_3p3v)) {
+				pr_err("could not get reg_ext_3p3v, rc = %ld\n",
+					PTR_ERR(reg_ext_3p3v));
+				reg_ext_3p3v = NULL;
+				return -ENODEV;
+			}
+			mpp3 = PM8921_MPP_PM_TO_SYS(3);
+			rc = gpio_request(mpp3, "backlight_en");
+			if (rc) {
+				pr_err("request mpp3 failed, rc=%d\n", rc);
+				return -ENODEV;
+			}
+		}
+
+		rc = gpio_request(gpio_lcd_mipi_reset, "disp_rst_n");
+		if (rc) {
+			pr_err("request gpio_lcd_mipi_reset failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+        	
+		rc = gpio_request(gpio_lcd_bl_en, "lcd_bl_en");
+		if (rc) {
+			pr_err("request gpio_lcd_bl_en failed, rc=%d\n", rc);
+			return -EINVAL;
+		}
+
+ 		rc = gpio_request(gpio_lcd_bl_ctl, "lcd_bl_ctl");
+		if (rc) {
+			pr_err("request gpio_lcd_bl_ctl failed, rc=%d\n", rc);
+			return -EINVAL;
+		}
+
+		if(!vci_bootup_set)
+		{
+			vci_bootup_set = true;
+		}
+		else
+		{
+			gpio_lcd_mipi_reset_param.pull = PM_GPIO_PULL_NO;
+			rc = pm8xxx_gpio_config(gpio_lcd_mipi_reset, &gpio_lcd_mipi_reset_param);
+			if (rc) {
+				pr_err("gpio_config lcd_mipi_reset failed (1), rc=%d\n", rc);
+				return -EINVAL;
+			}
+
+			rc = pm8xxx_gpio_config(gpio_lcd_bl_en, &gpio_lcd_bl_en_param);
+			if (rc) {
+				pr_err("gpio_config lcd_bl_en failed, rc=%d\n", rc);
+				return -EINVAL;
+			}
+
+			rc = pm8xxx_gpio_config(gpio_lcd_bl_ctl, &gpio_lcd_bl_ctl_param);
+			if (rc) {
+				pr_err("gpio_config lcd_bl_ctl failed, rc=%d\n", rc);
+				return -EINVAL;
+			}		
+		}	
+
+		dsi_power_on = true;
+	}
+
+	if (on) {
+		rc = regulator_enable(reg_lvs7);
+		if (rc) {
+			pr_err("enable lvs7 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+
+		rc = regulator_set_optimum_mode(reg_l11, 110000);
+		if (rc < 0) {
+			pr_err("set_optimum_mode l11 failed, rc=%d\n", rc);
+			return -EINVAL;
+		}
+
+		if (!regulator_is_enabled(reg_l11))
+		{
+			rc = regulator_enable(reg_l11);
+			if (rc) {
+				pr_err("enable l11 failed, rc=%d\n", rc);
+				return -ENODEV;
+			}
+		}
+
+		rc = regulator_set_optimum_mode(reg_l2, 100000);
+		if (rc < 0) {
+			pr_err("set_optimum_mode l2 failed, rc=%d\n", rc);
+			return -EINVAL;
+		}
+		rc = regulator_enable(reg_l2);
+		if (rc) {
+			pr_err("enable l2 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+
+		if (machine_is_apq8064_liquid()) {
+			rc = regulator_enable(reg_ext_3p3v);
+			if (rc) {
+				pr_err("enable reg_ext_3p3v failed, rc=%d\n",
+						rc);
+				return -ENODEV;
+			}
+			gpio_set_value_cansleep(mpp3, 1);
+		}
+
+		gpio_set_value_cansleep(gpio_lcd_bl_ctl, 1);
+	} else {
+		msleep(120);	
+		gpio_set_value(LCD_VCI_EN, 0);
+		msleep(1);
+		gpio_set_value_cansleep(gpio_lcd_mipi_reset, 0);
+		msleep(1);
+		gpio_set_value_cansleep(gpio_lcd_bl_ctl, 0);	
+		gpio_set_value_cansleep(gpio_lcd_bl_en, 0); // FEATURE_RENESAS_BL_CTRL_CHG
+
+		if (machine_is_apq8064_liquid()) {
+			gpio_set_value_cansleep(mpp3, 0);
+
+			rc = regulator_disable(reg_ext_3p3v);
+			if (rc) {
+				pr_err("disable reg_ext_3p3v failed, rc=%d\n",
+						rc);
+				return -ENODEV;
+			}
+		}
+
+
+		rc = regulator_disable(reg_l11);
+		if (rc) {
+			pr_err("disable reg_l11 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+
+
+		rc = regulator_disable(reg_lvs7);
+		if (rc) {
+			pr_err("disable reg_lvs7 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+
+		rc = regulator_disable(reg_l2);
+		if (rc) {
+			pr_err("disable reg_l2 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+	}
+	//printk(KERN_ERR "[LCD]-%s \n", __func__);
+	return 0;
+}
+
+void mipi_dsi_panel_power_shutdown(void)
+{
+	static int mpp3;
+
+	int rc;
+
+	msleep(120);
+
+	 gpio_set_value(LCD_VCI_EN, 0);
+
+	msleep(1);
+	gpio_set_value_cansleep(gpio_lcd_mipi_reset, 0);
+	msleep(1);
+	gpio_set_value_cansleep(gpio_lcd_bl_ctl, 0);	
+
+	if (machine_is_apq8064_liquid()) {
+		gpio_set_value_cansleep(mpp3, 0);
+
+		rc = regulator_disable(reg_ext_3p3v);
+		if (rc) {
+			pr_err("disable reg_ext_3p3v failed, rc=%d\n",
+					rc);
+		}
+	}
+
+
+	rc = regulator_disable(reg_l11);
+	if (rc) {
+		pr_err("disable reg_l11 failed, rc=%d\n", rc);
+	}
+
+	rc = regulator_disable(reg_lvs7);
+	if (rc) {
+		pr_err("disable reg_lvs7 failed, rc=%d\n", rc);
+	}
+
+	rc = regulator_disable(reg_l2);
+	if (rc) {
+		pr_err("disable reg_l2 failed, rc=%d\n", rc);
+	}
+}
+#endif // FEATURE_SKYDISP_SHARP_ROHM_HD 
+
+#ifdef FEATURE_SKYDISP_SHARP_RENESAS_FHD //EF51
+static bool dsi_power_on;
+static struct regulator *reg_lvs7, *reg_l2;  // l2(1.2v), lvs7(1.8v)
+#ifdef CONFIG_F_SKYDISP_SHARP_LCD_FLICKER
+extern int is_chg_notify_lcd(void);
+#endif
+
+static int lcd_manufature_ID = 0;
+
+void mipi_renesas_fhd_manufature_ID_set(int sel)
+{
+	lcd_manufature_ID = sel;
+}
+
+int mipi_renesas_fhd_manufature_ID_get(void)
+{
+	return lcd_manufature_ID;
+}
+
+static int mipi_dsi_panel_power(int on)
+{
+	static int prev_on, rc;
+
+	struct pm_gpio gpio_lcd_mipi_reset_param = {
+		.direction = PM_GPIO_DIR_OUT,
+		.output_buffer = PM_GPIO_OUT_BUF_CMOS,
+		.output_value = 0,
+		.pull = PM_GPIO_PULL_NO,
+		.vin_sel = 2,
+		.out_strength = PM_GPIO_STRENGTH_HIGH,
+		.function = PM_GPIO_FUNC_PAIRED,
+		.inv_int_pol = 0,
+		.disable_pin = 0,
+	};
+
+	struct pm_gpio gpio_lcd_bl_en_param = {
+		.direction = PM_GPIO_DIR_OUT,
+		.output_buffer = PM_GPIO_OUT_BUF_CMOS,
+		.output_value = 0,
+		.pull = PM_GPIO_PULL_NO,
+		.vin_sel = 2,
+		.out_strength = PM_GPIO_STRENGTH_HIGH,
+		.function = PM_GPIO_FUNC_NORMAL,
+		.inv_int_pol = 0,
+		.disable_pin = 0,
+	};
+
+	    struct pm_gpio gpio_lcd_bl_ctl_param = {
+		.direction = PM_GPIO_DIR_OUT,
+		.output_buffer = PM_GPIO_OUT_BUF_CMOS,
+		.output_value = 0,
+		.pull = PM_GPIO_PULL_NO,
+		.vin_sel = 2,
+		.out_strength = PM_GPIO_STRENGTH_HIGH,
+		.function = PM_GPIO_FUNC_NORMAL,
+		.inv_int_pol = 0,
+		.disable_pin = 0,
+	};
+
+
+	if (on == prev_on)
+		return 0;
+
+	printk(KERN_ERR "[SKY_LCD_KKCHO_debug] %s  on=%d\n", __func__, on);
+	pr_debug("%s: on=%d\n", __func__, on);
+
+	if (!dsi_power_on) {
+		reg_lvs7 = regulator_get(&msm_mipi_dsi1_device.dev,
+				"dsi1_vddio");
+		if (IS_ERR_OR_NULL(reg_lvs7)) {
+			pr_err("could not get 8921_lvs7, rc = %ld\n",
+				PTR_ERR(reg_lvs7));
+			return -ENODEV;
+		}
+
+		reg_l2 = regulator_get(&msm_mipi_dsi1_device.dev,
+				"dsi1_pll_vdda");
+		if (IS_ERR_OR_NULL(reg_l2)) {
+			pr_err("could not get 8921_l2, rc = %ld\n",
+				PTR_ERR(reg_l2));
+			return -ENODEV;
+		}
+
+		rc = regulator_set_voltage(reg_l2, 1200000, 1200000);
+		if (rc) {
+			pr_err("set_voltage l2 failed, rc=%d\n", rc);
+			return -EINVAL;
+		}
+
+		rc = gpio_request(gpio_lcd_mipi_reset, "disp_rst_n");
+		if (rc) {
+			pr_err("request gpio_lcd_mipi_reset failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+        		
+		rc = gpio_request(gpio_lcd_bl_en, "lcd_bl_en");
+		if (rc) {
+			pr_err("request gpio_lcd_bl_en failed, rc=%d\n", rc);
+			return -EINVAL;
+		}
+
+ 		rc = gpio_request(gpio_lcd_bl_ctl, "lcd_bl_ctl");
+		if (rc) {
+			pr_err("request gpio_lcd_bl_ctl failed, rc=%d\n", rc);
+			return -EINVAL;
+		}
+
+		if(!vci_bootup_set)
+		{
+			vci_bootup_set = true;
+		}
+		else
+		{
+			gpio_lcd_mipi_reset_param.pull = PM_GPIO_PULL_NO;
+			rc = pm8xxx_gpio_config(gpio_lcd_mipi_reset, &gpio_lcd_mipi_reset_param);
+			if (rc) {
+				pr_err("gpio_config lcd_mipi_reset failed (1), rc=%d\n", rc);
+				return -EINVAL;
+			}
+
+			rc = pm8xxx_gpio_config(gpio_lcd_bl_ctl, &gpio_lcd_bl_ctl_param);
+			if (rc) {
+				pr_err("gpio_config lcd_bl_ctl failed, rc=%d\n", rc);
+				return -EINVAL;
+			}			
+
+			rc = pm8xxx_gpio_config(gpio_lcd_bl_en, &gpio_lcd_bl_en_param);
+			if (rc) {
+				pr_err("gpio_config lcd_bl_en failed, rc=%d\n", rc);
+				return -EINVAL;
+			}
+		}	
+			 
+		dsi_power_on = true;
+	}
+
+	if (on) {
+
+		rc = regulator_enable(reg_lvs7);
+		if (rc) {
+			pr_err("enable lvs7 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+
+		mdelay(100);
+		
+		rc = regulator_set_optimum_mode(reg_l2, 100000);
+		if (rc < 0) {
+			pr_err("set_optimum_mode l2 failed, rc=%d\n", rc);
+			return -EINVAL;
+		}
+		rc = regulator_enable(reg_l2);
+		if (rc) {
+			pr_err("enable l2 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+	} else {
+
+		gpio_set_value_cansleep(gpio_lcd_bl_en, 0);  // FEATURE_RENESAS_BL_CTRL_CHG
+		gpio_set_value_cansleep(gpio_lcd_bl_ctl, 0);  // FEATURE_RENESAS_BL_CTRL_CHG
+
+		gpio_set_value_cansleep(gpio_lcd_mipi_reset,0);
+#ifdef CONFIG_F_SKYDISP_SHARP_LCD_FLICKER  
+		if (!is_chg_notify_lcd())
+		{
+			if(gpio_get_value(LCD_VCI_EN) == 1)
+			{
+				gpio_set_value(LCD_VCI_EN, 0);
+				mdelay(10);
+			}
+		}
+#else
+		gpio_set_value(LCD_VCI_EN, 0);
+		mdelay(10);
+#endif		
+
+#ifdef CONFIG_F_SKYDISP_SHARP_LCD_FLICKER  
+		if (!is_chg_notify_lcd())
+		{
+			if (regulator_is_enabled(reg_lvs7))
+			{
+				rc = regulator_disable(reg_lvs7);
+				if (rc) {
+					pr_err("disable reg_lvs7 failed, rc=%d\n", rc);
+					return -ENODEV;
+				}
+			}
+
+			if (regulator_is_enabled(reg_l2))
+			{
+				rc = regulator_disable(reg_l2);
+				if (rc) {
+					pr_err("disable reg_l2 failed, rc=%d\n", rc);
+					return -ENODEV;
+				}
+			}
+		}
+#else
+		rc = regulator_disable(reg_lvs7);
+		if (rc) {
+			pr_err("disable reg_lvs7 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+
+		rc = regulator_disable(reg_l2);
+		if (rc) {
+			pr_err("disable reg_l2 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+#endif		
+	}
+	
+	prev_on = on;
+	
+	return 0;
+}
+
+#ifdef CONFIG_F_SKYDISP_SHARP_LCD_FLICKER
+void mipi_renesas_panel_power_shutdown(void)
+{
+	int rc;
+
+	msleep(120);
+
+	if(gpio_get_value(LCD_VCI_EN) == 1)
+		gpio_set_value(LCD_VCI_EN, 0);
+
+	msleep(1);
+	gpio_set_value_cansleep(gpio_lcd_mipi_reset, 0);
+	msleep(1);
+	gpio_set_value_cansleep(gpio_lcd_bl_ctl, 0);	
+
+	if (!is_chg_notify_lcd())
+	{
+		if (regulator_is_enabled(reg_lvs7))
+		{
+			rc = regulator_disable(reg_lvs7);
+			if (rc) {
+				pr_err("disable reg_lvs7 failed, rc=%d\n", rc);
+			}
+		}
+
+		if (regulator_is_enabled(reg_l2))
+		{
+			rc = regulator_disable(reg_l2);
+			if (rc) {
+				pr_err("disable reg_l2 failed, rc=%d\n", rc);
+			}
+		}
+	}	
+}
+
+void mipi_renesas_panel_power_suspend(void)
+{
+	int rc;
+	if(gpio_get_value(LCD_VCI_EN) == 1)
+		gpio_set_value(LCD_VCI_EN, 0);
+
+	if (!is_chg_notify_lcd())
+	{
+		if (regulator_is_enabled(reg_lvs7))
+		{
+			rc = regulator_disable(reg_lvs7);
+			if (rc) {
+				pr_err("disable reg_l11 failed, rc=%d\n", rc);
+			}
+		}
+
+		if (regulator_is_enabled(reg_l2))
+		{
+			rc = regulator_disable(reg_l2);
+			if (rc) {
+				pr_err("disable reg_l2 failed, rc=%d\n", rc);
+			}
+		}		
+	}
+}		
+#endif
+#endif // FEATURE_SKYDISP_SHARP_RENESAS_FHD 
+
+#ifdef FEATURE_SKYDISP_JDI_ORISE_INCELL_HD  // EF52
+static bool dsi_power_on;
+static struct regulator *reg_l11,*reg_l21;
+static int mipi_dsi_panel_power(int on)
+{
+static struct regulator *reg_lvs7, *reg_l2;
+	int rc;
+
+    struct pm_gpio gpio_lcd_mipi_reset_param = {
+		.direction = PM_GPIO_DIR_OUT,
+		.output_buffer = PM_GPIO_OUT_BUF_CMOS,
+		.output_value = 0,
+		.pull = PM_GPIO_PULL_NO,
+		.vin_sel = 2,
+		.out_strength = PM_GPIO_STRENGTH_HIGH,
+		.function = PM_GPIO_FUNC_PAIRED,
+		.inv_int_pol = 0,
+		.disable_pin = 0,
+	};
+
+	
+	struct pm_gpio gpio_lcd_bl_en_param = {
+		.direction = PM_GPIO_DIR_OUT,
+		.output_buffer = PM_GPIO_OUT_BUF_CMOS,
+		.output_value = 0,
+		.pull = PM_GPIO_PULL_NO,
+		.vin_sel = 2,
+		.out_strength = PM_GPIO_STRENGTH_HIGH,
+		.function = PM_GPIO_FUNC_NORMAL,
+		.inv_int_pol = 0,
+		.disable_pin = 0,
+	};
+
+        struct pm_gpio gpio_lcd_bl_ctl_param = {
+		.direction = PM_GPIO_DIR_OUT,
+		.output_buffer = PM_GPIO_OUT_BUF_CMOS,
+		.output_value = 0,
+		.pull = PM_GPIO_PULL_NO,
+		.vin_sel = 2,
+		.out_strength = PM_GPIO_STRENGTH_HIGH,
+		.function = PM_GPIO_FUNC_NORMAL,
+		.inv_int_pol = 0,
+		.disable_pin = 0,
+	};
+
+
+	//printk(KERN_ERR "[LCD]+%s  on=%d\n", __func__, on);
+
+	if (!dsi_power_on) {
+		reg_lvs7 = regulator_get(&msm_mipi_dsi1_device.dev,
+				"dsi1_vddio");
+		if (IS_ERR_OR_NULL(reg_lvs7)) {
+			pr_err("could not get 8921_lvs7, rc = %ld\n",
+				PTR_ERR(reg_lvs7));
+			return -ENODEV;
+		}
+
+		reg_l2 = regulator_get(&msm_mipi_dsi1_device.dev,"dsi1_pll_vdda");//"8921_l21");
+		if (IS_ERR_OR_NULL(reg_l2)) 
+		{			
+			pr_err("could not get l2, rc = %ld\n",	PTR_ERR(reg_l2));
+			return -ENODEV;		
+		}		
+		rc = regulator_set_voltage(reg_l2, 1200000, 1200000);		
+		if (rc) 
+		{			
+			pr_err("ldo 2 set_voltage 1.2 failed, rc=%d\n", rc);
+			return -EINVAL;		
+		}
+
+		reg_l21 = regulator_get(&msm_mipi_dsi1_device.dev,"dsi1_io_1_8V");//"8921_l21");
+		if (IS_ERR_OR_NULL(reg_l21)) 
+		{			
+			pr_err("could not get 8921_21, rc = %ld\n",	PTR_ERR(reg_l2));
+			return -ENODEV;		
+		}		
+		rc = regulator_set_voltage(reg_l21, 1800000, 1800000);		
+		if (rc) 
+		{			
+			pr_err("ldo 21 set_voltage l8 failed, rc=%d\n", rc);
+			return -EINVAL;		
+		}
+		
+		reg_l11 = regulator_get(&msm_mipi_dsi1_device.dev,
+						"dsi1_avdd");
+		if (IS_ERR(reg_l11)) {
+				pr_err("could not get 8921_l11, rc = %ld\n",
+						PTR_ERR(reg_l11));
+				return -ENODEV;
+		}
+   	
+		rc = regulator_set_voltage(reg_l11, 3300000, 3300000);
+		if (rc) {
+				pr_err("set_voltage l11 failed, rc=%d\n", rc);
+				return -EINVAL;
+		}
+
+       	rc = gpio_request(gpio_lcd_mipi_reset, "disp_rst_n");
+		if (rc) {
+			pr_err("request gpio_lcd_mipi_reset failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+        
+		rc = gpio_request(gpio_lcd_bl_en, "lcd_bl_en");
+		if (rc) {
+			pr_err("request gpio_lcd_bl_en failed, rc=%d\n", rc);
+			return -EINVAL;
+		}
+
+ 		rc = gpio_request(gpio_lcd_bl_ctl, "lcd_bl_ctl");
+		if (rc) {
+			pr_err("request gpio_lcd_bl_ctl failed, rc=%d\n", rc);
+			return -EINVAL;
+		}
+
+#ifdef FEATURE_SKYDISP_BOOT_ANI_SKIP_BUG_FIX
+		if(!mipi_reset_init_skip)
+		{
+			mipi_reset_init_skip = true;
+			gpio_tlmm_config(GPIO_CFG(LCD_VCI_EN_OLD, 0, GPIO_CFG_OUTPUT,
+				GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), GPIO_CFG_ENABLE);			
+		}
+		else
+#endif			
+		{
+	        gpio_lcd_mipi_reset_param.pull = PM_GPIO_PULL_NO;
+			rc = pm8xxx_gpio_config(gpio_lcd_mipi_reset, &gpio_lcd_mipi_reset_param);
+			if (rc) {
+				pr_err("gpio_config lcd_mipi_reset failed (1), rc=%d\n", rc);
+				return -EINVAL;
+			}
+
+#ifndef FEATURE_SKYDISP_BOOT_ANI_SKIP_BUG_FIX
+			gpio_tlmm_config(GPIO_CFG(LCD_VCI_EN, 0, GPIO_CFG_OUTPUT,
+				GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+#endif     			
+	        
+			rc = pm8xxx_gpio_config(gpio_lcd_bl_en, &gpio_lcd_bl_en_param);
+			if (rc) {
+				pr_err("gpio_config lcd_bl_en failed, rc=%d\n", rc);
+				return -EINVAL;
+			}
+
+	       	rc = pm8xxx_gpio_config(gpio_lcd_bl_ctl, &gpio_lcd_bl_ctl_param);
+			if (rc) {
+				pr_err("gpio_config lcd_bl_ctl failed, rc=%d\n", rc);
+				return -EINVAL;
+			}
+		}
+		
+		dsi_power_on = true;
+	}
+			
+	if (on) {
+		rc = regulator_enable(reg_lvs7);
+		if (rc) {
+			pr_err("enable lvs7 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+		msleep(10);
+		//printk(KERN_ERR "[LCD]+%s LDO11 on \n", __func__);
+
+		rc = regulator_set_optimum_mode(reg_l2, 100000);
+		if (rc < 0) {
+			pr_err("set_optimum_mode l2 failed, rc=%d\n", rc);
+			return -EINVAL;
+		}
+		rc = regulator_enable(reg_l2);
+		if (rc) {
+			pr_err("enable l2 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+
+		msleep(10);
+
+		//printk(KERN_ERR "[LCD]+%s LDO11 on \n", __func__);
+
+		rc = regulator_set_optimum_mode(reg_l11, 110000);
+		if (rc < 0) {
+			pr_err("set_optimum_mode l11 failed, rc=%d\n", rc);
+			return -EINVAL;
+		}
+		rc = regulator_enable(reg_l11);
+		if (rc) {
+			pr_err("enable l11 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+
+		msleep(10);
+		//printk(KERN_ERR "[LCD]+%s LDO21 on \n", __func__);
+		rc = regulator_set_optimum_mode(reg_l21, 100000);
+
+		rc = regulator_enable(reg_l21);
+		if (rc) {
+			pr_err("enable l2 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+
+#if !defined(PANTECH_LCD_RESET_TWICE) // don't need 
+		msleep(5); 
+#endif
+		//printk(KERN_ERR "[LCD]+%s LDO21 on \n", __func__);
+
+#ifdef FEATURE_SKYDISP_BOOT_ANI_SKIP_BUG_FIX
+		if(!mipi_reset_set_skip)
+		{
+			mipi_reset_set_skip = true;
+		}
+		else
+#endif
+		{
+			gpio_set_value_cansleep(gpio_lcd_bl_ctl, 1);
+			msleep(2); //tH(2ms)
+
+#if defined(PANTECH_LCD_RESET_TWICE)
+			gpio_set_value_cansleep(gpio_lcd_mipi_reset, 1);
+			msleep(10); //tD(10ms)
+#else
+			gpio_set_value_cansleep(gpio_lcd_mipi_reset, 0);
+#endif
+
+			gpio_set_value(LCD_VCI_EN,1);		
+#ifdef FEATURE_SKYDISP_BOOT_ANI_SKIP_BUG_FIX			
+			gpio_set_value(LCD_VCI_EN_OLD,1);	
+#endif
+			msleep(10); // tE(0)+ tF(0)+ tG(0)+ tN(1ms)
+
+#if defined(PANTECH_LCD_RESET_TWICE)
+			gpio_set_value_cansleep(gpio_lcd_mipi_reset, 0);
+			udelay(100); // tO(10us)
+			gpio_set_value_cansleep(gpio_lcd_mipi_reset, 1);
+
+			msleep(5); // tI(5ms), it also takes 20ms <-- it need to reduce !
+			gpio_set_value_cansleep(gpio_lcd_mipi_reset, 0);
+			
+			udelay(100); // tO(10us)
+			gpio_set_value_cansleep(gpio_lcd_mipi_reset, 1);
+
+			printk(KERN_ERR "[LCD]+%s backlight on \n", __func__);
+#else
+			gpio_set_value_cansleep(gpio_lcd_mipi_reset, 1);
+			printk(KERN_ERR "[LCD]+%s backlight on !\n", __func__);
+#endif
+		}
+	
+#if !defined(PANTECH_LCD_RESET_TWICE) // PANTECH_LCD_RESET_TWICE already meet the tL(39ms)
+		msleep(39);
+#endif	
+	} else {
+		msleep(10);
+		gpio_set_value(43, 0);
+		msleep(10);
+		gpio_set_value(55, 0);
+		msleep(10);
+
+		msleep(70);
+		gpio_set_value_cansleep(gpio_lcd_mipi_reset, 0);
+		msleep(10);
+		gpio_set_value_cansleep(gpio_lcd_bl_ctl, 0);	 
+		gpio_set_value_cansleep(gpio_lcd_bl_en, 0); // FEATURE_RENESAS_BL_CTRL_CHG		
+
+		printk(KERN_ERR "[LCD] %s lcd off  \n", __func__);
+		gpio_set_value(LCD_VCI_EN,0);
+#ifdef FEATURE_SKYDISP_BOOT_ANI_SKIP_BUG_FIX		
+		gpio_set_value(LCD_VCI_EN_OLD,0);		
+#endif
+		msleep(10);
+
+		rc = regulator_disable(reg_l21);
+		if (rc) {
+			pr_err("disable reg_l2 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+		msleep(10);
+
+		rc = regulator_disable(reg_l11);
+		if (rc) {
+			pr_err("disable reg_l1 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+		msleep(10);
+		rc = regulator_disable(reg_l2);
+		if (rc) {
+			pr_err("disable reg_l2 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+		msleep(10);
+
+		rc = regulator_disable(reg_lvs7);
+		if (rc) {
+			pr_err("disable reg_lvs7 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+		msleep(10);
+
+	}
+	printk(KERN_ERR "[LCD]-%s \n", __func__);
+	return 0;
+}
+
+// 20121226, kkcho, for ##1199 LCD Front-Test
+int mipi_dsi_force_panel_power(int on)
+{
+	int rc;
+
+	//printk(KERN_ERR "[LCD]+%s  on=%d\n", __func__, on);			
+	if (on) {
+		rc = regulator_set_optimum_mode(reg_l11, 110000);
+		if (rc < 0) {
+			pr_err("set_optimum_mode l11 failed, rc=%d\n", rc);
+			return -EINVAL;
+		}
+		rc = regulator_enable(reg_l11);
+		if (rc) {
+			pr_err("enable l11 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+
+		msleep(10);
+		//printk(KERN_ERR "[LCD]+%s LDO21 on \n", __func__);
+		rc = regulator_set_optimum_mode(reg_l21, 100000);
+
+		rc = regulator_enable(reg_l21);
+		if (rc) {
+			pr_err("enable l2 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+
+		msleep(10);
+		//printk(KERN_ERR "[LCD]+%s LDO21 on \n", __func__);
+
+		//gpio_set_value_cansleep(gpio_lcd_bl_ctl, 1);
+		//msleep(10);
+#if defined(PANTECH_LCD_RESET_TWICE)
+		gpio_set_value_cansleep(gpio_lcd_mipi_reset, 1);
+		msleep(10);
+#else
+		gpio_set_value_cansleep(gpio_lcd_mipi_reset, 0);
+#endif	
+		gpio_set_value(LCD_VCI_EN,1);	
+#ifdef FEATURE_SKYDISP_BOOT_ANI_SKIP_BUG_FIX		
+		gpio_set_value(LCD_VCI_EN_OLD,1);		
+#endif
+		msleep(10);
+
+
+#if defined(PANTECH_LCD_RESET_TWICE)
+		gpio_set_value_cansleep(gpio_lcd_mipi_reset, 0);
+		msleep(1);
+		gpio_set_value_cansleep(gpio_lcd_mipi_reset, 1);
+		printk(KERN_ERR "[LCD]+%s backlight on \n", __func__);
+#else
+		gpio_set_value_cansleep(gpio_lcd_mipi_reset, 1);
+		printk(KERN_ERR "[LCD]+%s backlight on !\n", __func__);
+#endif
+		msleep(39);
+	
+	} else {
+		msleep(10);
+		gpio_set_value(43, 0);
+		msleep(10);
+		gpio_set_value(55, 0);
+		msleep(10);
+
+		msleep(70);
+		gpio_set_value_cansleep(gpio_lcd_mipi_reset, 0);
+		msleep(10);
+		gpio_set_value_cansleep(gpio_lcd_bl_ctl, 0);	 
+		gpio_set_value_cansleep(gpio_lcd_bl_en, 0); // FEATURE_RENESAS_BL_CTRL_CHG		
+
+		printk(KERN_ERR "[LCD] %s lcd off  \n", __func__);
+		gpio_set_value(LCD_VCI_EN,0);
+#ifdef FEATURE_SKYDISP_BOOT_ANI_SKIP_BUG_FIX		
+		gpio_set_value(LCD_VCI_EN_OLD,0);	
+#endif
+		msleep(10);
+
+		rc = regulator_disable(reg_l21);
+		if (rc) {
+			pr_err("disable reg_l2 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+		msleep(10);
+
+		rc = regulator_disable(reg_l11);
+		if (rc) {
+			pr_err("disable reg_l1 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+	}
+	printk(KERN_ERR "[LCD]-%s \n", __func__);
+	return 0;
+}
+
+#endif // FEATURE_SKYDISP_JDI_ORISE_INCELL_HD  
+#else
 static bool dsi_power_on;
 static int mipi_dsi_panel_power(int on)
 {
@@ -514,11 +1562,12 @@ static int mipi_dsi_panel_power(int on)
 
 	return 0;
 }
-
+#endif
 static struct mipi_dsi_platform_data mipi_dsi_pdata = {
 	.dsi_power_save = mipi_dsi_panel_power,
 };
 
+#ifndef FEATURE_SKYDISP_FUSION3_PANTECH_DISPLAY
 static bool lvds_power_on;
 static int lvds_panel_power(int on)
 {
@@ -704,7 +1753,9 @@ static struct platform_device mipi_dsi2lvds_bridge_device = {
 	.id = 0,
 	.dev.platform_data = &mipi_dsi2lvds_pdata,
 };
+#endif
 
+#ifndef FEATURE_SKYDISP_FUSION3_PANTECH_DISPLAY 
 static int toshiba_gpio[] = {LPM_CHANNEL};
 static struct mipi_dsi_panel_platform_data toshiba_pdata = {
 	.gpio = toshiba_gpio,
@@ -717,6 +1768,7 @@ static struct platform_device mipi_dsi_toshiba_panel_device = {
 			.platform_data = &toshiba_pdata,
 	}
 };
+#endif
 
 static struct msm_bus_vectors dtv_bus_init_vectors[] = {
 	{
@@ -777,6 +1829,10 @@ static int hdmi_enable_5v(int on)
 	static int prev_on;
 	int rc;
 
+#ifdef FEATURE_SKYDISP_ENABLE_HDMI_FOR_WFD
+	return 0;
+#endif
+
 	if (on == prev_on)
 		return 0;
 
@@ -817,6 +1873,10 @@ static int hdmi_core_power(int on, int show)
 	static struct regulator *reg_8921_lvs7, *reg_8921_s4, *reg_ext_3p3v;
 	static int prev_on;
 	int rc;
+
+#ifdef FEATURE_SKYDISP_ENABLE_HDMI_FOR_WFD
+	return 0;
+#endif
 
 	if (on == prev_on)
 		return 0;
@@ -924,6 +1984,10 @@ static int hdmi_gpio_config(int on)
 	static int prev_on;
 	int pmic_gpio14 = PM8921_GPIO_PM_TO_SYS(14);
 
+#ifdef FEATURE_SKYDISP_ENABLE_HDMI_FOR_WFD
+	return 0;
+#endif
+
 	if (on == prev_on)
 		return 0;
 
@@ -986,9 +2050,14 @@ static int hdmi_cec_power(int on)
 	static int prev_on;
 	int rc;
 
+#ifdef FEATURE_SKYDISP_ENABLE_HDMI_FOR_WFD
+	return 0;
+#endif
+
 	if (on == prev_on)
 		return 0;
 
+#if !(defined(CONFIG_MACH_APQ8064_EF48S) ||defined(CONFIG_MACH_APQ8064_EF49K) || defined(CONFIG_MACH_APQ8064_EF50L) || defined(CONFIG_SKY_EF52S_BOARD) || defined(CONFIG_SKY_EF52K_BOARD) || defined(CONFIG_SKY_EF52L_BOARD) || defined(CONFIG_SKY_EF52W_BOARD))
 	if (on) {
 		rc = gpio_request(HDMI_CEC_VAR_GPIO, "HDMI_CEC_VAR");
 		if (rc) {
@@ -1007,10 +2076,64 @@ static int hdmi_cec_power(int on)
 	return 0;
 error:
 	return rc;
+#else
+	rc = 0;
+	return rc;
+#endif	
 }
+
+#ifdef FEATURE_SKYDISP_FUSION3_PANTECH_DISPLAY 
+#ifdef FEATURE_SKYDISP_SHARP_ROHM_HD 
+static struct platform_device mipi_dsi_rohm_panel_device = {
+	.name = "mipi_rohm",
+	.id = 0,
+};
+
+static struct platform_device * oem_panel_devices[] = {
+	&mipi_dsi_rohm_panel_device,
+};
+#endif
+
+#ifdef FEATURE_SKYDISP_SHARP_RENESAS_FHD  
+static struct platform_device mipi_dsi_renesas_panel_device = {
+	.name = "mipi_renesas",
+	.id = 0,
+};
+
+static struct platform_device * oem_panel_devices[] = {
+	&mipi_dsi_renesas_panel_device,
+};
+#endif
+
+#ifdef FEATURE_SKYDISP_JDI_ORISE_INCELL_HD   
+static struct platform_device mipi_dsi_sony_insell_panel_device = {
+	.name = "mipi_sony_insell",
+	.id = 0,
+};
+
+static struct platform_device * oem_panel_devices[] = {
+	&mipi_dsi_sony_insell_panel_device,
+};
+#endif
+#endif
 
 void __init apq8064_init_fb(void)
 {
+#ifdef FEATURE_SKYDISP_FUSION3_PANTECH_DISPLAY 
+	platform_device_register(&msm_fb_device);
+
+#ifdef CONFIG_FB_MSM_WRITEBACK_MSM_PANEL
+	platform_device_register(&wfd_panel_device);
+	platform_device_register(&wfd_device);
+#endif
+
+      	platform_add_devices(oem_panel_devices, ARRAY_SIZE(oem_panel_devices));
+
+	msm_fb_register_device("mdp", &mdp_pdata);
+	msm_fb_register_device("mipi_dsi", &mipi_dsi_pdata);
+	platform_device_register(&hdmi_msm_device);
+	msm_fb_register_device("dtv", &dtv_pdata);
+#else
 	platform_device_register(&msm_fb_device);
 	platform_device_register(&lvds_chimei_panel_device);
 
@@ -1031,6 +2154,7 @@ void __init apq8064_init_fb(void)
 	msm_fb_register_device("mipi_dsi", &mipi_dsi_pdata);
 	platform_device_register(&hdmi_msm_device);
 	msm_fb_register_device("dtv", &dtv_pdata);
+#endif	
 }
 
 /**

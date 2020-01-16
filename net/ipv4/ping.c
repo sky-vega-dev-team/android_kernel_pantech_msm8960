@@ -250,7 +250,9 @@ int ping_init_sock(struct sock *sk)
 	gid_t range[2];
 	struct group_info *group_info = get_current_groups();
 	int i, j, count = group_info->ngroups;
-
+#ifdef CONFIG_LGU_DS_RETURN_CURRENT_GROUP_ID
+	int ret = 0;
+#endif
 	inet_get_ping_group_range_net(net, range, range+1);
 	if (range[0] <= group && group <= range[1])
 		return 0;
@@ -261,13 +263,25 @@ int ping_init_sock(struct sock *sk)
 		for (j = 0; j < cp_count; j++) {
 			group = group_info->blocks[i][j];
 			if (range[0] <= group && group <= range[1])
+#ifdef CONFIG_LGU_DS_RETURN_CURRENT_GROUP_ID
+				goto out_release_group;
+#else
 				return 0;
+#endif				
 		}
 
 		count -= cp_count;
 	}
-
+	
+#ifndef CONFIG_LGU_DS_RETURN_CURRENT_GROUP_ID
 	return -EACCES;
+#else
+	ret = -EACCES;
+
+out_release_group:
+	put_group_info(group_info);
+	return ret;
+#endif	
 }
 EXPORT_SYMBOL_GPL(ping_init_sock);
 
@@ -879,10 +893,23 @@ int ping_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 	/* Copy the address and add cmsg data. */
 	if (family == AF_INET) {
 		sin = (struct sockaddr_in *) msg->msg_name;
+#ifndef CONFIG_LGU_DS_PREVENT_NULL_MSG_NAME
 		sin->sin_family = AF_INET;
 		sin->sin_port = 0 /* skb->h.uh->source */;
 		sin->sin_addr.s_addr = ip_hdr(skb)->saddr;
 		memset(sin->sin_zero, 0, sizeof(sin->sin_zero));
+
+    //CONFIG_LGU_DS_PREVENT_NULL_MSG_NAME : add!!
+    *addr_len = sizeof(*sin);
+#else /* CONFIG_LGU_DS_PREVENT_NULL_MSG_NAME */
+    if (sin) {
+      sin->sin_family = AF_INET;
+      sin->sin_port = 0 /* skb->h.uh->source */;
+      sin->sin_addr.s_addr = ip_hdr(skb)->saddr;
+      memset(sin->sin_zero, 0, sizeof(sin->sin_zero));
+      *addr_len = sizeof(*sin);
+    }
+#endif /* CONFIG_LGU_DS_PREVENT_NULL_MSG_NAME */
 
 		if (isk->cmsg_flags)
 			ip_cmsg_recv(msg, skb);
@@ -892,9 +919,27 @@ int ping_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 		struct ipv6_pinfo *np = inet6_sk(sk);
 		struct ipv6hdr *ip6 = ipv6_hdr(skb);
 		sin6 = (struct sockaddr_in6 *) msg->msg_name;
+#ifndef CONFIG_LGU_DS_PREVENT_NULL_MSG_NAME    
 		sin6->sin6_family = AF_INET6;
 		sin6->sin6_port = 0;
 		sin6->sin6_addr = ip6->saddr;
+
+    //CONFIG_LGU_DS_PREVENT_NULL_MSG_NAME : add!!
+    *addr_len = sizeof(*sin6);
+#else /* CONFIG_LGU_DS_PREVENT_NULL_MSG_NAME */
+		if (sin6) {
+			sin6->sin6_family = AF_INET6;
+			sin6->sin6_port = 0;
+			sin6->sin6_addr = ip6->saddr;
+			sin6->sin6_flowinfo = 0;
+			if (np->sndflow)
+				sin6->sin6_flowinfo = ip6_flowinfo(ip6);
+			sin6->sin6_scope_id =
+				ipv6_iface_scope_id(&sin6->sin6_addr,
+						                IP6CB(skb)->iif);
+			*addr_len = sizeof(*sin6);
+		}
+#endif /* CONFIG_LGU_DS_PREVENT_NULL_MSG_NAME */
 
 		if (np->sndflow)
 			sin6->sin6_flowinfo =

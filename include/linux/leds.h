@@ -38,6 +38,9 @@ struct led_classdev {
 #define LED_SUSPENDED		(1 << 0)
 	/* Upper 16 bits reflect control information */
 #define LED_CORE_SUSPENDRESUME	(1 << 16)
+// ++ p16092 add -140122:LED_BLINK_CONTROL++ 2012.09.09 for adding Power Save Mode(p11309)
+#define LED_ENABLE_POWER_SAVE	(1 << 8)
+//-- p16092
 
 	/* Set LED brightness level */
 	/* Must not sleep, use a workqueue if needed */
@@ -54,9 +57,15 @@ struct led_classdev {
 	 * Deactivate blinking again when the brightness is set to a fixed
 	 * value via the brightness_set() callback.
 	 */
-	int		(*blink_set)(struct led_classdev *led_cdev,
-				     unsigned long *delay_on,
-				     unsigned long *delay_off);
+// ++ p16092 2012.09.09 for adding Power Save Mode(p11309)
+//	int (*blink_set) (struct led_classdev *led_cdev, 
+//			unsigned long *delay_on, 
+//			unsigned long *delay_off);
+	int (*blink_set) (struct led_classdev *led_cdev, 
+			unsigned long *delay_on, 
+			unsigned long *delay_off, 
+			int led_percent_level);
+// -- p16092
 
 	struct device		*dev;
 	struct list_head	 node;			/* LED Device list */

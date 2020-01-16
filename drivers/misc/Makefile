@@ -72,6 +72,14 @@ obj-$(CONFIG_MSM_MEMORY_LOW_POWER_MODE_SUSPEND_DEEP_POWER_DOWN) \
 obj-$(CONFIG_PMIC8058_XOADC) += pmic8058-xoadc.o
 obj-$(CONFIG_QSEECOM) += qseecom.o
 obj-$(CONFIG_QFP_FUSE) += qfp_fuse.o
-obj-y += tspdrv/
+obj-$(CONFIG_PIEZO) += ti_drv2665.o
+#20140124 LS4_WIFI Warfs WiFi Porting KiKat 
+# 20130725 lcj@LS3
+obj-$(CONFIG_PANTECH_WLAN_DEBUG) += wlan_debug.o
+# CONFIG_PN544
+obj-$(CONFIG_PN544) 		+= pn544.o
 obj-$(CONFIG_BU52031NVX) += pm8xxx-cradle.o
 obj-$(CONFIG_SLIMPORT_ANX7808)	+= slimport_anx7808/
+
+#CONFIG_PANTECH_PS_WIFI_COM_PREF_LOGGING
+obj-$(CONFIG_PANTECH_PS_WIFI_COM_PREF_LOGGING) += wifi_log.o

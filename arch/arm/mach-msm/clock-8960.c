@@ -5310,9 +5310,14 @@ static struct clk_lookup msm_clocks_8064[] = {
 #else
 	CLK_LOOKUP("core_clk",		gsbi4_uart_clk.c, "msm_serial_hs.1"),
 #endif
+#ifdef CONFIG_PANTECH_GSBI5_UART_CONSOLE
+	CLK_LOOKUP("core_clk",		gsbi5_uart_clk.c,	"msm_serial_hsl.0"),
+#else
 	CLK_LOOKUP("core_clk",		gsbi5_uart_clk.c,	""),
+#endif
 	CLK_LOOKUP("core_clk",		gsbi6_uart_clk.c, "msm_serial_hs.0"),
-#ifdef CONFIG_MACH_LGE
+#if defined(CONFIG_PANTECH_GSBI5_UART_CONSOLE) || defined(CONFIG_MACH_LGE)
+//#ifdef CONFIG_MACH_LGE
 	CLK_LOOKUP("core_clk",		gsbi7_uart_clk.c,	""),
 #else
 	CLK_LOOKUP("core_clk",		gsbi7_uart_clk.c, "msm_serial_hsl.0"),
@@ -5324,7 +5329,11 @@ static struct clk_lookup msm_clocks_8064[] = {
 	CLK_LOOKUP("core_clk",		gsbi5_qup_clk.c,	"spi_qsd.0"),
 	CLK_LOOKUP("core_clk",		gsbi5_qup_clk.c,	"qup_i2c.5"),
 	CLK_LOOKUP("core_clk",		gsbi6_qup_clk.c,	""),
+#ifdef CONFIG_SKY_DMB_SPI_HW
+	CLK_LOOKUP("core_clk",		gsbi7_qup_clk.c,	"spi_qsd.7"),
+#else
 	CLK_LOOKUP("core_clk",		gsbi7_qup_clk.c,	""),
+#endif
 	CLK_LOOKUP("core_clk",		pdm_clk.c,		""),
 	CLK_LOOKUP("mem_clk",		pmem_clk.c,		"msm_sps"),
 	CLK_LOOKUP("core_clk",          prng_clk.c,		"msm_rng.0"),
@@ -5336,6 +5345,11 @@ static struct clk_lookup msm_clocks_8064[] = {
 	CLK_LOOKUP("iface_clk",		tsif_p_clk.c,		"msm_tsif.0"),
 	CLK_LOOKUP("ref_clk",		tsif_ref_clk.c,		"msm_tsif.1"),
 	CLK_LOOKUP("iface_clk",		tsif_p_clk.c,		"msm_tsif.1"),
+#if defined(CONFIG_SKY_DMB_TSIF_IF)
+	CLK_LOOKUP("ref_clk",		tsif_ref_clk.c,		"msm_tsif.0"),
+#else
+	CLK_LOOKUP("ref_clk",		tsif_ref_clk.c,		""),
+#endif
 	CLK_LOOKUP("core_clk",		tssc_clk.c,		""),
 	CLK_LOOKUP("alt_core_clk",	usb_hs1_xcvr_clk.c,	"msm_otg"),
 	CLK_LOOKUP("alt_core_clk",      usb_hs3_xcvr_clk.c,  "msm_ehci_host.0"),
@@ -5371,15 +5385,31 @@ static struct clk_lookup msm_clocks_8064[] = {
 #endif
 	CLK_LOOKUP("iface_clk",		gsbi4_p_clk.c,		"qup_i2c.4"),
 	CLK_LOOKUP("iface_clk",		gsbi4_p_clk.c,	"msm_serial_hs.1"),
+#ifdef CONFIG_PIEZO
+	CLK_LOOKUP("iface_clk",		gsbi5_p_clk.c,	"qup_i2c.5"),
+#endif
+#ifdef CONFIG_PANTECH_GSBI5_UART_CONSOLE
+	CLK_LOOKUP("iface_clk",		gsbi5_p_clk.c,		"msm_serial_hsl.0"),
+#else
 	CLK_LOOKUP("iface_clk",		gsbi5_p_clk.c,		"spi_qsd.0"),
 	CLK_LOOKUP("iface_clk",		gsbi5_p_clk.c,		"qup_i2c.5"),
+#endif
 	CLK_LOOKUP("iface_clk",		gsbi6_p_clk.c,	"msm_serial_hs.0"),
-#ifdef CONFIG_MACH_LGE
+#if defined(CONFIG_PANTECH_GSBI5_UART_CONSOLE) || defined(CONFIG_MACH_LGE)
+//#ifdef CONFIG_MACH_LGE
 	CLK_LOOKUP("iface_clk",		gsbi7_p_clk.c,		""),
 #else
 	CLK_LOOKUP("iface_clk",		gsbi7_p_clk.c,	"msm_serial_hsl.0"),
 #endif
+#ifdef CONFIG_SKY_DMB_SPI_HW
+	CLK_LOOKUP("iface_clk",		gsbi7_p_clk.c,		"spi_qsd.7"),
+#else
+	CLK_LOOKUP("iface_clk",		gsbi7_p_clk.c,	""),
+#endif
 	CLK_LOOKUP("ref_clk",	tsif_ref_clk.c,	"msm_tspp.0"),
+#if defined(CONFIG_SKY_DMB_TSIF_IF)
+    CLK_LOOKUP("iface_clk",   tsif_p_clk.c,   "msm_tsif.0"),
+#endif
 	CLK_LOOKUP("iface_clk",		tsif_p_clk.c,		"msm_tspp.0"),
 	CLK_LOOKUP("iface_clk",		usb_fs1_p_clk.c,	""),
 	CLK_LOOKUP("iface_clk",		usb_hs1_p_clk.c,	"msm_otg"),
@@ -5400,12 +5430,28 @@ static struct clk_lookup msm_clocks_8064[] = {
 	CLK_LOOKUP("iface_clk",		pmic_arb1_p_clk.c,	""),
 	CLK_LOOKUP("core_clk",		pmic_ssbi2_clk.c,	""),
 	CLK_LOOKUP("mem_clk",		rpm_msg_ram_p_clk.c,	""),
+#ifdef CONFIG_PANTECH_CAMERA_CE1502
+	CLK_LOOKUP("cam_clk",		cam0_clk.c,	"4-0078"),
+#endif
+#ifdef CONFIG_PANTECH_CAMERA_YACD5C1SBDBC
+//20120509 yujm_camera WS2�� HW ���� 
+#if (CONFIG_BOARD_VER <= CONFIG_WS10)
+    CLK_LOOKUP("cam_clk",       cam1_clk.c, "4-0040"),//"msm_camera_yacd5c1sbdbc.0"),
+#else
+    CLK_LOOKUP("cam_clk",       cam2_clk.c, "4-0040"),//"msm_camera_yacd5c1sbdbc.0"),
+#endif //yujm_camera end
+#endif
+#ifdef CONFIG_PANTECH_CAMERA_AS0260
+    CLK_LOOKUP("cam_clk",       cam2_clk.c, "4-a090"),//"4-0048"),//"msm_camera_as0260.0"),"4-005d"),//
+#endif
+#ifndef CONFIG_PANTECH_CAMERA
 	CLK_LOOKUP("cam_clk",		cam0_clk.c,	"4-001a"),
 	CLK_LOOKUP("cam_clk",		cam0_clk.c,	"4-0010"),
 	CLK_LOOKUP("cam_clk",		cam0_clk.c,	"4-0034"),
 	CLK_LOOKUP("cam_clk",		cam0_clk.c,	"4-0020"),
 	CLK_LOOKUP("cam_clk",		cam1_clk.c,	"4-0048"),
 	CLK_LOOKUP("cam_clk",		cam1_clk.c,	"4-006c"),
+#endif	
 	CLK_LOOKUP("csi_src_clk",	csi0_src_clk.c,		"msm_csid.0"),
 	CLK_LOOKUP("csi_src_clk",	csi1_src_clk.c,		"msm_csid.1"),
 	CLK_LOOKUP("csi_src_clk",	csi2_src_clk.c,		"msm_csid.2"),

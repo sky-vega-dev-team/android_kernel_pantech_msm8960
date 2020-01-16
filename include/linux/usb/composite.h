@@ -372,6 +372,9 @@ extern int usb_string_ids_tab(struct usb_composite_dev *c,
 			      struct usb_string *str);
 extern int usb_string_ids_n(struct usb_composite_dev *c, unsigned n);
 
+// 2012.09.25 p13120 USB/Charger detection issue. ===>
+int android_get_udc_state(void);
+// 2012.09.25 p13120 USB/Charger detection issue. ===<
 
 /* messaging utils */
 #define DBG(d, fmt, args...) \

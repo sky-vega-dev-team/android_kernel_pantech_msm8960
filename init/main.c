@@ -128,6 +128,14 @@ static char *static_command_line;
 static char *execute_command;
 static char *ramdisk_execute_command;
 
+#ifdef CONFIG_PANTECH_SMB347_CHARGER
+static unsigned int battchg_pause_offline = 0;
+unsigned int pantech_charging_status(void)
+{
+	return battchg_pause_offline;
+}
+EXPORT_SYMBOL(pantech_charging_status);
+#endif
 /*
  * If set, this is an indication to the drivers that reset the underlying
  * device before going ahead with the initialization otherwise driver might
@@ -511,8 +519,14 @@ asmlinkage void __init start_kernel(void)
 		   __stop___param - __start___param,
 		   0, 0, &unknown_bootoption);
 
-	jump_label_init();
 
+	
+#ifdef CONFIG_PANTECH_SMB347_CHARGER
+        if (strstr(boot_command_line,"androidboot.mode=charger")) {
+                battchg_pause_offline = 1;
+        }
+#endif
+	jump_label_init();
 	/*
 	 * These use large bootmem allocations and must precede
 	 * kmem_cache_init()

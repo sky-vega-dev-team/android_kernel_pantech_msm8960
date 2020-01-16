@@ -36,6 +36,7 @@
 #include <linux/gpio.h>
 #include <linux/of.h>
 #include <linux/of_i2c.h>
+#include <linux/ti_drv2665.h>
 
 MODULE_LICENSE("GPL v2");
 MODULE_VERSION("0.2");
@@ -62,6 +63,15 @@ enum {
 	QUP_IN_FIFO_BASE        = 0x218,
 	QUP_I2C_CLK_CTL         = 0x400,
 	QUP_I2C_STATUS          = 0x404,
+};
+
+//p16619 piezo
+enum {
+	QUP_MX_OUTPUT_COUNT           = 0x100,
+	QUP_MX_OUTPUT_COUNT_CURRENT           = 0x104,
+	QUP_OUT_FIFO_WORD_CNT        = 0x10C,
+	QUP_MX_WRITE_COUNT        = 0x150,
+	QUP_MX_WRITE_COUNT_CURRENT        = 0x154,		
 };
 
 /* QUP States and reset values */
@@ -170,7 +180,15 @@ struct qup_i2c_dev {
 	struct mutex                 mlock;
 	void                         *complete;
 	int                          i2c_gpios[ARRAY_SIZE(i2c_rsrcs)];
+	//p16619 piezo
+	//int				sent_cnt;
 };
+static int sent_cnt=0;
+//p16619 piezo
+int get_lastPacket(void){
+    return sent_cnt;
+}
+EXPORT_SYMBOL(get_lastPacket);
 
 #ifdef DEBUG
 static void
@@ -194,6 +212,8 @@ static irqreturn_t
 qup_i2c_interrupt(int irq, void *devid)
 {
 	struct qup_i2c_dev *dev = devid;
+	//p16619 piezo
+	uint32_t mx_cnt_cr = 0;
 	uint32_t status = 0;
 	uint32_t status1 = 0;
 	uint32_t op_flgs = 0;
@@ -217,8 +237,17 @@ qup_i2c_interrupt(int irq, void *devid)
 	}
 
 	if (status & I2C_STATUS_ERROR_MASK) {
-		dev_err(dev->dev, "QUP: I2C status flags :0x%x, irq:%d\n",
-			status, irq);
+		//dev_err(dev->dev, "QUP: I2C status flags :0x%x, irq:%d\n",
+		//	status, irq);		
+		
+		//p16619 piezo
+        mx_cnt_cr = readl_relaxed(dev->base + QUP_MX_OUTPUT_COUNT_CURRENT);	
+		sent_cnt = mx_cnt_cr;
+		if((status & 0xF0000) == 0x30000) sent_cnt += 1;
+		if(sent_cnt > 6) sent_cnt -= 1;
+	       if(sent_cnt > 13) sent_cnt -= 1;	      
+//		if(sent_cnt > 20) sent_cnt -= 1;
+
 		err = status;
 		/* Clear Error interrupt if it's a level triggered interrupt*/
 		if (dev->num_irqs == 1) {
@@ -776,6 +805,9 @@ qup_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 	pm_runtime_get_sync(dev->dev);
 	mutex_lock(&dev->mlock);
 
+//p16619 piezo
+	sent_cnt = 0;
+	
 	if (dev->suspended) {
 		mutex_unlock(&dev->mlock);
 		return -EIO;
@@ -994,9 +1026,9 @@ timeout_err:
 			if (dev->err) {
 				if (dev->err > 0 &&
 					dev->err & QUP_I2C_NACK_FLAG) {
-					dev_err(dev->dev,
-					"I2C slave addr:0x%x not connected\n",
-					dev->msg->addr);
+					//dev_err(dev->dev,
+					//"I2C slave addr:0x%x not connected\n",
+					//dev->msg->addr);
 					dev->err = ENOTCONN;
 				} else if (dev->err < 0) {
 					dev_err(dev->dev,

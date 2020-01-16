@@ -93,7 +93,9 @@ extern void ping_proc_exit(void);
 #endif
 
 void __init ping_init(void);
+#ifdef CONFIG_LGU_DS_CTS_IPV6_PING_TEST_FAIL_FIX
 int  __init pingv6_init(void);
 void pingv6_exit(void);
+#endif
 
 #endif /* _PING_H */

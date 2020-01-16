@@ -729,7 +729,11 @@ int msm_isp_config(struct msm_cam_media_controller *pmctl,
 		break;
 
 	case MSM_CAM_IOCTL_AXI_CONFIG:
+#if	0//def F_PANTECH_CAMERA_DEADBEEF_ERROR_FIX
 		D("Received MSM_CAM_IOCTL_AXI_CONFIG\n");
+#else
+		pr_err("%s: Received MSM_CAM_IOCTL_AXI_CONFIG\n", __func__); 
+#endif
 		rc = msm_axi_config(sd, pmctl, argp);
 		break;
 

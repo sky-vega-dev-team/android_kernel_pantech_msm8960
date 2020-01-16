@@ -33,7 +33,6 @@
 #include <linux/memblock.h>
 #include <linux/msm_thermal.h>
 #include <linux/i2c/atmel_mxt_ts.h>
-#include <linux/cyttsp-qc.h>
 #include <linux/i2c/isa1200.h>
 #include <linux/gpio_keys.h>
 #include <linux/epm_adc.h>
@@ -53,6 +52,7 @@
 #include <mach/msm_spi.h>
 #include "timer.h"
 #include "devices.h"
+#include <mach/gpio.h>
 #include <mach/gpiomux.h>
 #include <mach/rpm.h>
 #ifdef CONFIG_ANDROID_PMEM
@@ -88,7 +88,274 @@
 #include "pm-boot.h"
 #include "devices-msm8x60.h"
 #include "smd_private.h"
+
+#ifdef CONFIG_SKY_DMB_SPI_GPIO
+#include <linux/spi/spi_gpio.h>
+#endif
+
+#if defined(CONFIG_PANTECH_DEBUG)
+#include <mach/pantech_debug.h>
+#endif
+
+#include <linux/i2c-gpio.h>
+#if defined(CONFIG_TOUCHSCREEN_SYNAPTICS_RMI4_PANTECH)
+#include <linux/rmi.h>
+
+#define THINSTYK_ADDR	0x20
+#define THINSTYK_ATTN	55
+
+struct syna_gpio_data {
+	u16 gpio_number;
+	char* gpio_name;
+};
+
+static int synaptics_touchpad_gpio_setup(void *gpio_data, bool configure)
+{
+	int retval=0;
+	struct syna_gpio_data *data = gpio_data;
+
+	if (configure) {
+		retval = gpio_request(data->gpio_number, "rmi4_attn");
+		if (retval) {
+			pr_err("%s: Failed to get attn gpio %d. Code: %d.",
+			       __func__, data->gpio_number, retval);
+			return retval;
+		}
+
+		retval = gpio_direction_input(data->gpio_number);
+		if (retval) {
+			pr_err("%s: Failed to setup attn gpio %d. Code: %d.",
+			       __func__, data->gpio_number, retval);
+			gpio_free(data->gpio_number);
+		}
+	} else {
+		pr_warn("%s: No way to deconfigure gpio %d.",
+		       __func__, data->gpio_number);
+	}
+
+	return retval;
+}
+
+static struct syna_gpio_data thinstyk_gpiodata = {
+	.gpio_number = THINSTYK_ATTN,	
+	.gpio_name = "sdmmc2_clk.gpio_130",
+};
+
+static struct rmi_device_platform_data thinstyk_platformdata = {
+	.driver_name = "rmi_generic",
+	.attn_gpio = THINSTYK_ATTN,
+	.attn_polarity = RMI_ATTN_ACTIVE_LOW,
+	.gpio_data = &thinstyk_gpiodata,
+	.gpio_config = synaptics_touchpad_gpio_setup,
+	.sensor_name = "touch",
+#ifdef CONFIG_RMI4_F11_TYPEB	
+	.f11_type_b = true,
+#endif
+};
+
+static struct i2c_board_info synaptics_i2c_info[] = {
+	{
+		I2C_BOARD_INFO("pantech_touch", THINSTYK_ADDR),        
+		.platform_data = &thinstyk_platformdata,
+	},
+};
+#endif
+
+#ifdef CONFIG_SKY_DMB_I2C_CMD
+#ifdef CONFIG_SKY_TDMB_INC_BB
+#define DMB_I2C_CHIP_ADDR 0x80 // TDMB INC T3900
+#elif defined(CONFIG_SKY_TDMB_FCI_BB)
+#define DMB_I2C_CHIP_ADDR 0xB0 // TDMB FCI FC8053
+#elif defined(CONFIG_SKY_TDMB_RTV_BB)
+#define DMB_I2C_CHIP_ADDR 0x86 // TDMB RaonTech MTV350
+#elif defined(CONFIG_SKY_ISDBT_SHARP_BB)
+#define DMB_I2C_CHIP_ADDR 0xc2 // ISDB-T Sharp (11000010)
+#endif
+
+static struct i2c_board_info i2c_dmb_devices[]  = {
+	{
+		I2C_BOARD_INFO("dmb_i2c", DMB_I2C_CHIP_ADDR >> 1),
+	},
+};
+
+#ifdef CONFIG_SKY_DMB_I2C_GPIO
+//GPIO not QUP
+#if (defined(CONFIG_MACH_APQ8064_EF51S)&&(CONFIG_BOARD_VER>=CONFIG_TP10)) || (defined(CONFIG_MACH_APQ8064_EF51K)&&(CONFIG_BOARD_VER>=CONFIG_TP10)) || (defined(CONFIG_MACH_APQ8064_EF51L)&&(CONFIG_BOARD_VER>=CONFIG_TP10))
+#define GPIO_PIN_DMB_SCL  85
+#define GPIO_PIN_DMB_SDA  86
+#else
+#define GPIO_PIN_DMB_SCL  54  //GSBI5
+#define GPIO_PIN_DMB_SDA  53
+#endif
+
+#define DMB_I2C_UDELAY    2	/* 250 KHz */
+#define DMB_I2C_BUS_ID    12
+
+static struct i2c_gpio_platform_data i2c_gpio_dmb_data = {
+	.scl_pin = GPIO_PIN_DMB_SCL,
+	.sda_pin = GPIO_PIN_DMB_SDA,
+	.udelay = DMB_I2C_UDELAY,
+};
+
+struct platform_device msm_device_i2c_gpio_dmb = {
+	.name = "i2c-gpio",
+	.id = DMB_I2C_BUS_ID, // id important value
+	.dev = {
+		.platform_data = &i2c_gpio_dmb_data,
+	}
+};
+
+static uint32_t dmb_i2c_gpio_table[] = {
+#if (defined(CONFIG_MACH_APQ8064_EF51S) ||defined(CONFIG_MACH_APQ8064_EF51K) || defined(CONFIG_MACH_APQ8064_EF51L))
+	GPIO_CFG(GPIO_PIN_DMB_SCL, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA),
+	GPIO_CFG(GPIO_PIN_DMB_SDA, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA),
+#else
+	GPIO_CFG(GPIO_PIN_DMB_SCL, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(GPIO_PIN_DMB_SDA, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+#endif
+};
+
+static void sky_dmb_i2c_gpio_init(void)
+{
+	int ret = 0, i=0;
+	for (i = 0; i < ARRAY_SIZE(dmb_i2c_gpio_table); ++i) {
+		ret= gpio_tlmm_config(dmb_i2c_gpio_table[i], GPIO_CFG_ENABLE);
+		if ( ret ) {
+			pr_err( "%s: Failed dmb_i2c_gpio_table i2c gpio_tlmm_config(%d)=%d\n", __func__, i, ret);
+			break;
+		}
+	}
+
+	i2c_register_board_info(DMB_I2C_BUS_ID, i2c_dmb_devices, ARRAY_SIZE(i2c_dmb_devices));
+}
+
+#endif /* CONFIG_SKY_DMB_I2C_GPIO */
+#endif /* CONFIG_SKY_DMB_I2C_CMD */
+
+#if defined(CONFIG_TOUCHSCREEN_PP8360)
+#include <linux/i2c-gpio.h>
+#define GPIO_BACK_TOUCH_SCL  12
+#define GPIO_BACK_TOUCH_SDA 13
+#define BACK_TOUCH_I2C_BUS_ID    18
+#define BACK_TOUCH_I2C_CHIP_ADDR 0x0e
+
+static struct i2c_gpio_platform_data i2c_gpio_backtouch_data = {
+    .scl_pin = GPIO_BACK_TOUCH_SCL,
+    .sda_pin = GPIO_BACK_TOUCH_SDA,
+    //	.udelay = 4,
+    .udelay = 2,
+
+};
+
+struct platform_device msm_device_i2c_gpio_backtouch = {
+    .name = "i2c-gpio",
+    .id = BACK_TOUCH_I2C_BUS_ID, // id important value
+    .dev = {
+        .platform_data = &i2c_gpio_backtouch_data,
+    }
+};
+
+static struct i2c_board_info i2c_back_touch_devices[]  = {
+    {
+        I2C_BOARD_INFO("tchkeypt", BACK_TOUCH_I2C_CHIP_ADDR),
+    },
+};
+
+static void sky_back_touch_i2c_gpio_init(void)
+{
+    i2c_register_board_info(BACK_TOUCH_I2C_BUS_ID, i2c_back_touch_devices, ARRAY_SIZE(i2c_back_touch_devices));
+}
+#endif /* CONFIG_TOUCHSCREEN_PP8360 */
+
+#if defined(CONFIG_TOUCHSCREEN_CYTTSP_GEN4)
+#define CY_I2C_NAME     "cyttsp4-i2c"
+#define CY_I2C_TCH_ADR	0x24
+static struct i2c_board_info cyttsp4_i2c_info[] = {
+    {
+        I2C_BOARD_INFO(CY_I2C_NAME, CY_I2C_TCH_ADR),
+        //.platform_data = &cyttsp4_i2c_touch_platform_data,
+    },
+};
+#endif //CONFIG_TOUCHSCREEN_CYTTSP_GEN4
+
+#if defined(CONFIG_PN544)
+#include <linux/pn544.h>
+#endif
+
 #include "sysmon.h"
+#include <linux/i2c-gpio.h>
+#ifdef CONFIG_SKY_DMB_SPI_IF
+static struct spi_board_info dmb_spi_board_info[] __initdata = {
+	{
+		.modalias       = "dmb_spi",
+  #if defined(CONFIG_SKY_TDMB_TCC_BB)
+		.mode           = SPI_MODE_2,
+  #else
+		.mode           = SPI_MODE_0,
+  #endif
+		.bus_num        = 7,
+		.chip_select    = 0,
+  #ifdef CONFIG_SKY_TDMB_INC_BB
+		.max_speed_hz   = 5400000,
+  #else
+		.max_speed_hz   = 10800000,
+  #endif
+#ifdef CONFIG_SKY_DMB_SPI_GPIO
+		.controller_data = (void *) 84, // chip select
+#endif
+	}
+};
+
+#ifdef CONFIG_SKY_DMB_SPI_HW
+static struct msm_spi_platform_data apq8064_qup_spi_gsbi7_pdata = {
+  #ifdef CONFIG_SKY_TDMB_INC_BB
+	.max_clock_speed = 5400000, // 5.4Mhz
+  #else
+	.max_clock_speed = 10800000,
+  #endif
+};
+#endif /* CONFIG_SKY_DMB_SPI_HW */
+
+#ifdef CONFIG_SKY_DMB_SPI_GPIO
+static struct spi_gpio_platform_data gpio_spi_tdmb_data = {
+	.sck = 85,
+	.mosi = 82,
+	.miso = 83,
+	.num_chipselect = 1,
+};
+struct platform_device gpio_spi_tdmb_device = {
+	.name = "spi_gpio",
+	.id = 7,
+	.dev = {
+		.platform_data = &gpio_spi_tdmb_data,
+	}
+};
+#endif /* CONFIG_SKY_DMB_SPI_GPIO */
+#endif /* CONFIG_SKY_DMB_SPI_IF */
+
+#if 0//def CONFIG_SKY_DMB_PMIC_19200
+static struct msm_xo_voter *xo_handle_a1;
+
+static int configure_dmb_xo(void)
+{
+	int rc = 0;
+	
+	xo_handle_a1 = msm_xo_get(MSM_XO_TCXO_A1, "DMB_XTAL");
+	if (IS_ERR(xo_handle_a1)) {
+		rc = PTR_ERR(xo_handle_a1);
+		pr_err("[DMB] Failed to get MSM_XO_TCXO_A1 voter (%d)\n", rc);
+		return 0;	//goto fail;
+	}
+
+	rc = msm_xo_mode_vote(xo_handle_a1, MSM_XO_MODE_PIN_CTRL);
+	if (rc < 0) {
+		pr_err("[DMB] Configuring MSM_XO_MODE_PIN_CTRL failed (%d)\n", rc);
+		return 0;	//goto msm_xo_vote_fail;
+	}
+  
+  return 1;
+}
+#endif /* CONFIG_SKY_DMB_PMIC_19200 */
 
 #define MSM_PMEM_ADSP_SIZE         0x7800000
 #define MSM_PMEM_AUDIO_SIZE        0x4CF000
@@ -148,6 +415,124 @@ static int __init msm_contig_mem_size_setup(char *p)
 	return 0;
 }
 early_param("msm_contig_mem_size", msm_contig_mem_size_setup);
+#endif
+
+#if defined(CONFIG_SKY_SND_EXTERNAL_AMP) //YDA165
+#if ( ( defined(CONFIG_SKY_EF51S_BOARD) || defined(CONFIG_SKY_EF51K_BOARD) || defined(CONFIG_SKY_EF51L_BOARD) ) && (CONFIG_BOARD_VER > CONFIG_WS10) ) || \
+	defined(CONFIG_SKY_EF52S_BOARD) || defined(CONFIG_SKY_EF52K_BOARD) || defined(CONFIG_SKY_EF52L_BOARD) || defined(CONFIG_SKY_EF52W_BOARD)
+#define GPIO_PIN_SUBSYSTEM_SCL	70
+#define GPIO_PIN_SUBSYSTEM_SDA	71
+
+static struct i2c_gpio_platform_data yda165_i2c_gpio_data = {
+	.scl_pin = GPIO_PIN_SUBSYSTEM_SCL,
+	.sda_pin = GPIO_PIN_SUBSYSTEM_SDA,
+	.udelay = 5,	/* 100 KHz */
+};
+
+struct platform_device yda165_i2c_gpio_device = {
+	.name = "i2c-gpio",
+	.id = APQ_8960_GSBI7_QUP_I2C_BUS_ID,
+	.dev = {
+       .platform_data = &yda165_i2c_gpio_data,
+	}
+};
+
+static struct i2c_board_info __initdata yda165_i2c_boardinfo[] ={
+	{
+		I2C_BOARD_INFO("yda165-amp", 0x6C),
+	},
+};
+#else
+
+#define I2C_SCL_FAB2210      70  
+#define I2C_SDA_FAB2210     71  
+static struct i2c_gpio_platform_data fab2210_i2c_gpio_data = {
+	.scl_pin = I2C_SCL_FAB2210,
+	.sda_pin = I2C_SDA_FAB2210,
+	.udelay = 5,
+	//.udelay = 2,  // 20110908 jmlee 100KHz(udelay 5) --> 400KHz(udelay 2) boot time issue
+};
+struct platform_device  fab2210_i2c_gpio_device = {
+	.name = "i2c-gpio",
+	.id = APQ_8960_GSBI7_QUP_I2C_BUS_ID,
+	.dev	= {
+		.platform_data = &fab2210_i2c_gpio_data,
+	},
+};
+
+static struct i2c_board_info __initdata fab2210_i2c_boardinfo[] ={
+	{
+			I2C_BOARD_INFO("fab2210-i2c", 0x4D),
+	},
+};
+#endif
+#endif /* CONFIG_SKY_SND_EXTERNAL_AMP */
+
+#if defined(CONFIG_PANTECH_MAX17058_FG)
+#if defined(CONFIG_MACH_APQ8064_EF48S) ||defined(CONFIG_MACH_APQ8064_EF49K) || defined(CONFIG_MACH_APQ8064_EF50L) || defined(CONFIG_MACH_APQ8064_EF51S) || defined(CONFIG_MACH_APQ8064_EF51K) || defined(CONFIG_MACH_APQ8064_EF51L)
+#define GPIO_FG_SCL      1    
+#define GPIO_FG_SDA      0
+#elif defined(CONFIG_MACH_APQ8064_EF52S) || defined(CONFIG_MACH_APQ8064_EF52K) || defined(CONFIG_MACH_APQ8064_EF52L)
+#define GPIO_FG_SCL      1    
+#define GPIO_FG_SDA      37
+#else
+#define GPIO_FG_SCL      1    
+#define GPIO_FG_SDA      0
+#endif 
+static struct i2c_gpio_platform_data max17058_i2c_data = {
+        .scl_pin = GPIO_FG_SCL,
+        .sda_pin = GPIO_FG_SDA,
+        .udelay = 5,    /* 100 KHz */
+};
+struct platform_device max17058_i2c_device = {
+        .name = "i2c-gpio",
+        .id = APQ_8064_MAX17058_I2C_BUS_ID,
+        .dev = {
+                .platform_data = &max17058_i2c_data,
+        }
+};
+static struct i2c_board_info max17058_i2c_boardinfo[] __initdata={
+	{
+			I2C_BOARD_INFO("max17058-i2c", 0x6C>>1),
+	},
+};
+#endif
+#if defined(CONFIG_PANTECH_SMB347_CHARGER)
+#if defined(CONFIG_MACH_APQ8064_EF48S) ||defined(CONFIG_MACH_APQ8064_EF49K) || defined(CONFIG_MACH_APQ8064_EF50L) || defined(CONFIG_MACH_APQ8064_EF51S) || defined(CONFIG_MACH_APQ8064_EF51K) || defined(CONFIG_MACH_APQ8064_EF51L)
+#define GPIO_SC_SCL      69    
+#define GPIO_SC_SDA      26
+#elif defined(CONFIG_MACH_APQ8064_EF52S) || defined(CONFIG_MACH_APQ8064_EF52K) || defined(CONFIG_MACH_APQ8064_EF52L)
+#define GPIO_SC_SCL      54    
+#define GPIO_SC_SDA      53
+#else
+#define GPIO_SC_SCL      69    
+#define GPIO_SC_SDA      26
+#endif 
+static struct i2c_gpio_platform_data i2c_gpio_smb_data = {
+        .scl_pin = GPIO_SC_SCL,
+        .sda_pin = GPIO_SC_SDA,
+        .udelay = 5,    /* 100 KHz */
+};
+struct platform_device msm_device_i2c_gpio_smb = {
+        .name = "i2c-gpio",
+        .id = APQ_8064_SMB347_I2C_BUS_ID,
+        .dev = {
+                .platform_data = &i2c_gpio_smb_data,
+        }
+};
+#if (defined(CONFIG_SKY_EF52S_BOARD) || defined(CONFIG_SKY_EF52K_BOARD) || defined(CONFIG_SKY_EF52L_BOARD)) && (CONFIG_BOARD_VER < CONFIG_WS20)
+static struct i2c_board_info smb347_i2c_boardinfo[] __initdata={
+	{
+			I2C_BOARD_INFO("smb347-i2c", 0xD4>>1),
+	},
+};
+#else
+static struct i2c_board_info smb347_i2c_boardinfo[] __initdata={
+	{
+			I2C_BOARD_INFO("smb347-i2c", 0x0C>>1),
+	},
+};
+#endif 
 #endif
 
 #ifdef CONFIG_ANDROID_PMEM
@@ -693,6 +1078,13 @@ static void __init reserve_mpdcvs_memory(void)
 	apq8064_reserve_table[MEMTYPE_EBI1].size += SZ_32K;
 }
 
+static void __init reserve_pantechDbg_memory(void)
+{
+#if defined(CONFIG_PANTECH_DEBUG)
+	    apq8064_reserve_table[MEMTYPE_EBI1].size += PANTECH_DBG_LOG_BUF_SIZE;
+#endif
+}
+
 static void __init apq8064_calculate_reserve_sizes(void)
 {
 	size_pmem_devices();
@@ -702,6 +1094,7 @@ static void __init apq8064_calculate_reserve_sizes(void)
 	reserve_rtb_memory();
 	reserve_cache_dump_memory();
 	reserve_mpdcvs_memory();
+	reserve_pantechDbg_memory();
 }
 
 static struct reserve_info apq8064_reserve_info __initdata = {
@@ -899,17 +1292,89 @@ static struct msm_bus_scale_pdata usb_bus_scale_pdata = {
 	.name = "usb",
 };
 
+#ifdef CONFIG_PANTECH_USB_TUNE_SIGNALING_PARAM
+#if defined(CONFIG_MACH_APQ8064_EF48S) ||defined(CONFIG_MACH_APQ8064_EF49K) || defined(CONFIG_MACH_APQ8064_EF50L) || defined(CONFIG_MACH_APQ8064_EF51S) || defined(CONFIG_MACH_APQ8064_EF51K) || defined(CONFIG_MACH_APQ8064_EF51L)
+static int phy_init_seq[] = {
+	0x3f, 0x81, /* update DC voltage level */
+	0x3f, 0x82, /* set pre-emphasis and rise/fall time */
+	0x13, 0x83, /* set impedance */
+	-1
+};
+#elif defined(CONFIG_MACH_APQ8064_EF52S) || defined(CONFIG_MACH_APQ8064_EF52K) || defined(CONFIG_MACH_APQ8064_EF52L)
+static int phy_init_seq[] = {
+	0x3f, 0x81, /* update DC voltage level */
+	0x33, 0x82, /* set pre-emphasis and rise/fall time */
+	0x33, 0x83, /* set impedance */
+	-1
+};
+#else
+	/* Default Parameter */
 static int phy_init_seq[] = {
 	0x38, 0x81, /* update DC voltage level */
 	0x24, 0x82, /* set pre-emphasis and rise/fall time */
 	-1
 };
+#endif
+#else
+static int phy_init_seq[] = {
+	0x38, 0x81, /* update DC voltage level */
+	0x24, 0x82, /* set pre-emphasis and rise/fall time */
+	-1
+};
+#endif
 
 #define PMIC_GPIO_DP		27    /* PMIC GPIO for D+ change */
 #define PMIC_GPIO_DP_IRQ	PM8921_GPIO_IRQ(PM8921_IRQ_BASE, PMIC_GPIO_DP)
 #define MSM_MPM_PIN_USB1_OTGSESSVLD	40
 
+#ifdef CONFIG_PANTECH_ANDROID_OTG
+static int pantech_control_usb_switch(int pm_gpio, int value)
+{
+	static int gpio;
+	int rc;
+
+	
+
+	gpio = PM8921_GPIO_PM_TO_SYS(pm_gpio);
+
+	printk(KERN_ERR "@@@@ %s: pm_gpio[%d], value[%d], gpio[%d]\n", __func__, pm_gpio, value, gpio);
+	if(pm_gpio == 36){
+		rc = gpio_request(gpio, "msm_usb_id_sw");
+		if(rc){
+				pr_err("request gpio 36 failed, rc=%d\n", rc);
+				return -ENODEV;
+		}
+	}else if(pm_gpio == 44){
+		rc = gpio_request(gpio, "pmic_usb_id_sw");
+		if(rc){
+				pr_err("request gpio  failed, rc=%d\n", rc);
+				return -ENODEV;
+		}
+	}
+
+	if(value){
+		gpio_set_value_cansleep(gpio, 1);
+	}else{
+		gpio_set_value_cansleep(gpio, 0);
+	}
+
+	gpio_free(gpio);
+	return 0;
+}
+#endif /* CONFIG_PANTECH_ANDROID_OTG */
+
 static struct msm_otg_platform_data msm_otg_pdata = {
+#ifdef CONFIG_PANTECH_ANDROID_OTG
+	.mode			= USB_OTG,
+	.otg_control		= OTG_PHY_CONTROL,
+	.phy_type		= SNPS_28NM_INTEGRATED_PHY,
+	.pmic_id_irq		= PM8921_GPIO_IRQ(PM8921_IRQ_BASE, 25),
+	.control_usb_switch = pantech_control_usb_switch,
+	.power_budget		= 750,
+        .bus_scale_table        = &usb_bus_scale_pdata,
+	.phy_init_seq		= phy_init_seq,
+	.mpm_otgsessvld_int	= MSM_MPM_PIN_USB1_OTGSESSVLD,
+#else /* CONFIG_PANTECH_ANDROID_OTG */
 	.mode			= USB_OTG,
 	.otg_control		= OTG_PMIC_CONTROL,
 	.phy_type		= SNPS_28NM_INTEGRATED_PHY,
@@ -918,6 +1383,7 @@ static struct msm_otg_platform_data msm_otg_pdata = {
 	.bus_scale_table	= &usb_bus_scale_pdata,
 	.phy_init_seq		= phy_init_seq,
 	.mpm_otgsessvld_int	= MSM_MPM_PIN_USB1_OTGSESSVLD,
+#endif /* CONFIG_PANTECH_ANDROID_OTG */
 };
 
 static struct msm_usb_host_platform_data msm_ehci_host_pdata3 = {
@@ -951,6 +1417,8 @@ static void __init apq8064_ehci_host_init(void)
 	}
 }
 
+#if !defined(CONFIG_MACH_APQ8064_EF48S) && !defined(CONFIG_MACH_APQ8064_EF49K) && !defined(CONFIG_MACH_APQ8064_EF50L) && !defined(CONFIG_MACH_APQ8064_EF51S) && !defined(CONFIG_MACH_APQ8064_EF51K) && !defined(CONFIG_MACH_APQ8064_EF51L) && !defined(CONFIG_MACH_APQ8064_EF52S) && !defined(CONFIG_MACH_APQ8064_EF52K) && !defined(CONFIG_MACH_APQ8064_EF52L)
+#error
 static struct smb349_platform_data smb349_data __initdata = {
 	.en_n_gpio		= PM8921_GPIO_PM_TO_SYS(37),
 	.chg_susp_gpio		= PM8921_GPIO_PM_TO_SYS(30),
@@ -963,7 +1431,7 @@ static struct i2c_board_info smb349_charger_i2c_info[] __initdata = {
 		.platform_data	= &smb349_data,
 	},
 };
-
+#endif
 struct sx150x_platform_data apq8064_sx150x_data[] = {
 	[SX150X_EPM] = {
 		.gpio_base	= GPIO_EPM_EXPANDER_BASE,
@@ -1193,6 +1661,7 @@ static struct i2c_board_info cs8427_device_info[] __initdata = {
 	},
 };
 
+#ifndef CONFIG_PN544
 #define HAP_SHIFT_LVL_OE_GPIO		PM8921_MPP_PM_TO_SYS(8)
 #define ISA1200_HAP_EN_GPIO		PM8921_GPIO_PM_TO_SYS(33)
 #define ISA1200_HAP_LEN_GPIO		PM8921_GPIO_PM_TO_SYS(20)
@@ -1296,6 +1765,8 @@ static struct i2c_board_info isa1200_board_info[] __initdata = {
 		.platform_data = &isa1200_1_pdata,
 	},
 };
+#endif // !CONFIG_PN544
+#if !defined(CONFIG_MACH_APQ8064_EF48S) && !defined(CONFIG_MACH_APQ8064_EF49K) && !defined(CONFIG_MACH_APQ8064_EF50L) && !defined(CONFIG_MACH_APQ8064_EF51S) && !defined(CONFIG_MACH_APQ8064_EF51K) && !defined(CONFIG_MACH_APQ8064_EF51L) && !defined(CONFIG_MACH_APQ8064_EF52S) && !defined(CONFIG_MACH_APQ8064_EF52K) && !defined(CONFIG_MACH_APQ8064_EF52L)
 /* configuration data for mxt1386e using V2.1 firmware */
 static const u8 mxt1386e_config_data_v2_1[] = {
 	/* T6 Object */
@@ -1514,6 +1985,32 @@ static struct i2c_board_info cyttsp_info[] __initdata = {
 		.irq = MSM_GPIO_TO_INT(CYTTSP_TS_GPIO_IRQ),
 	},
 };
+#endif
+#if defined(CONFIG_PN544)
+
+#define NFC_I2C_SDA             20
+#define NFC_I2C_SCL             21
+#define NFC_IRQ_GPIO            29
+#define NFC_ENABLE_GPIO         PM8921_GPIO_PM_TO_SYS(7)
+#define NFC_FW_DL_GPIO          PM8921_GPIO_PM_TO_SYS(22)
+#define NFC_SLAVE_ADDR		    0x28	
+
+//#define APQ_8064_GSBI1_QUP_I2C_BUS_ID 0
+
+static struct pn544_i2c_platform_data pn544 = {
+	.irq_gpio = NFC_IRQ_GPIO,
+	.ven_gpio = NFC_ENABLE_GPIO,
+	.firm_gpio = NFC_FW_DL_GPIO,
+};
+
+static struct i2c_board_info nfc_i2c_boardinfo[] __initdata = {
+	{
+		I2C_BOARD_INFO("pn544", NFC_SLAVE_ADDR),
+        .irq = MSM_GPIO_TO_INT(NFC_IRQ_GPIO),
+        .platform_data = &pn544,
+	},
+};
+#endif	
 
 #define MSM_WCNSS_PHYS	0x03000000
 #define MSM_WCNSS_SIZE	0x280000
@@ -2347,6 +2844,7 @@ static struct platform_device apq8064_device_ext_mpp8_vreg __devinitdata = {
 	},
 };
 
+#ifndef CONFIG_PANTECH_BLOCK
 static struct platform_device apq8064_device_ext_3p3v_vreg __devinitdata = {
 	.name	= GPIO_REGULATOR_DEV_NAME,
 	.id	= APQ8064_EXT_3P3V_REG_EN_GPIO,
@@ -2355,6 +2853,7 @@ static struct platform_device apq8064_device_ext_3p3v_vreg __devinitdata = {
 			&apq8064_gpio_regulator_pdata[GPIO_VREG_ID_EXT_3P3V],
 	},
 };
+#endif
 
 static struct platform_device apq8064_device_ext_ts_sw_vreg __devinitdata = {
 	.name	= GPIO_REGULATOR_DEV_NAME,
@@ -2397,30 +2896,48 @@ static struct platform_device gpio_ir_recv_pdev = {
 static struct platform_device *common_not_mpq_devices[] __initdata = {
 	&apq8064_device_qup_i2c_gsbi1,
 	&apq8064_device_qup_i2c_gsbi3,
+#ifdef CONFIG_PIEZO
+    &apq8064_device_qup_i2c_gsbi5,
+#endif
 };
 
 static struct platform_device *early_common_devices[] __initdata = {
 	&apq8064_device_acpuclk,
 	&apq8064_device_dmov,
 	&apq8064_device_qup_spi_gsbi5,
+#ifdef CONFIG_SKY_DMB_SPI_HW
+	&apq8064_device_qup_spi_gsbi7,
+#endif
 };
 
 static struct platform_device *pm8921_common_devices[] __initdata = {
 	&apq8064_device_ext_5v_vreg,
 	&apq8064_device_ext_mpp8_vreg,
+#ifndef CONFIG_PANTECH_BLOCK
 	&apq8064_device_ext_3p3v_vreg,
+#endif
 	&apq8064_device_ssbi_pmic1,
 	&apq8064_device_ssbi_pmic2,
 };
 
 static struct platform_device *pm8917_common_devices[] __initdata = {
 	&apq8064_device_ext_mpp8_vreg,
+#ifndef CONFIG_PANTECH_BLOCK
 	&apq8064_device_ext_3p3v_vreg,
+#endif
 	&apq8064_device_ssbi_pmic1,
 	&apq8064_device_ssbi_pmic2,
 };
 
 static struct platform_device *common_devices[] __initdata = {
+#if defined(CONFIG_SKY_SND_EXTERNAL_AMP) //YDA165
+#if ( ( defined(CONFIG_SKY_EF51S_BOARD) || defined(CONFIG_SKY_EF51K_BOARD) || defined(CONFIG_SKY_EF51L_BOARD) ) && (CONFIG_BOARD_VER > CONFIG_WS10) ) || \
+	defined(CONFIG_SKY_EF52S_BOARD) || defined(CONFIG_SKY_EF52K_BOARD) || defined(CONFIG_SKY_EF52L_BOARD) || defined(CONFIG_SKY_EF52W_BOARD)
+	&yda165_i2c_gpio_device,
+#else
+	&fab2210_i2c_gpio_device,
+#endif	
+#endif /* CONFIG_SKY_SND_EXTERNAL_AMP */
 	&msm_device_smd_apq8064,
 	&apq8064_device_otg,
 	&apq8064_device_gadget_peripheral,
@@ -2448,8 +2965,10 @@ static struct platform_device *common_devices[] __initdata = {
 	&qseecom_device,
 #endif
 
+#ifdef CONFIG_SKY_DMB_TSIF_IF
 	&msm_8064_device_tsif[0],
-	&msm_8064_device_tsif[1],
+	//&msm_8064_device_tsif[1],
+#endif
 
 #if defined(CONFIG_CRYPTO_DEV_QCRYPTO) || \
 		defined(CONFIG_CRYPTO_DEV_QCRYPTO_MODULE)
@@ -2535,16 +3054,40 @@ static struct platform_device *common_devices[] __initdata = {
 	&apq8064_iommu_domain_device,
 	&msm_tsens_device,
 	&apq8064_cache_dump_device,
+#ifndef CONFIG_PANTECH_BLOCK
 	&msm_8064_device_tspp,
+#endif
 #ifdef CONFIG_BATTERY_BCL
 	&battery_bcl_device,
 #endif
 	&apq8064_msm_mpd_device,
+#if defined(CONFIG_PANTECH_MAX17058_FG)
+	&max17058_i2c_device,
+#endif
+#if defined(CONFIG_PANTECH_SMB347_CHARGER)
+	&msm_device_i2c_gpio_smb,
+#endif		
+#ifdef CONFIG_SKY_DMB_SPI_GPIO
+	&gpio_spi_tdmb_device,
+#endif
+#ifdef CONFIG_SKY_DMB_I2C_GPIO
+   //GPIO not QUP
+    &msm_device_i2c_gpio_dmb,
+#endif /* CONFIG_SKY_DMB_I2C_GPIO */
+#if defined(CONFIG_TOUCHSCREEN_PP8360)
+    &msm_device_i2c_gpio_backtouch,
+#endif /* CONFIG_TOUCHSCREEN_PP8360 */
 };
 
 static struct platform_device *cdp_devices[] __initdata = {
+#ifndef CONFIG_PN544
 	&apq8064_device_uart_gsbi1,
+#endif
+	#ifdef CONFIG_PANTECH_GSBI5_UART_CONSOLE
+	&apq8064_device_uart_gsbi5,
+	#else
 	&apq8064_device_uart_gsbi7,
+	#endif
 	&msm_device_sps_apq8064,
 #ifdef CONFIG_MSM_ROTATOR
 	&msm_rotator_device,
@@ -2706,7 +3249,11 @@ static struct slim_boardinfo apq8064_slim_devices[] = {
 };
 
 static struct msm_i2c_platform_data apq8064_i2c_qup_gsbi1_pdata = {
+#if defined(CONFIG_PN544)
+	.clk_freq = 400000,
+#else
 	.clk_freq = 100000,
+#endif
 	.src_clk_rate = 24000000,
 };
 
@@ -2716,7 +3263,11 @@ static struct msm_i2c_platform_data apq8064_i2c_qup_gsbi3_pdata = {
 };
 
 static struct msm_i2c_platform_data apq8064_i2c_qup_gsbi4_pdata = {
+#ifdef CONFIG_PANTECH_CAMERA
+	.clk_freq = 384000,
+#else	
 	.clk_freq = 100000,
+#endif
 	.src_clk_rate = 24000000,
 };
 
@@ -2724,11 +3275,19 @@ static struct msm_i2c_platform_data mpq8064_i2c_qup_gsbi5_pdata = {
 	.clk_freq = 100000,
 	.src_clk_rate = 24000000,
 };
+#ifdef CONFIG_PIEZO
+static struct msm_i2c_platform_data apq8064_i2c_qup_gsbi5_pdata = {
+	.clk_freq = 384000,
+	.src_clk_rate = 24000000,
+    .use_gsbi_shared_mode = 1,
+};
+#endif
 
 #define GSBI_DUAL_MODE_CODE 0x60
 #define MSM_GSBI1_PHYS		0x12440000
 static void __init apq8064_i2c_init(void)
 {
+#ifndef CONFIG_PN544
 	void __iomem *gsbi_mem;
 
 	apq8064_device_qup_i2c_gsbi1.dev.platform_data =
@@ -2739,6 +3298,10 @@ static void __init apq8064_i2c_init(void)
 	wmb();
 	iounmap(gsbi_mem);
 	apq8064_i2c_qup_gsbi1_pdata.use_gsbi_shared_mode = 1;
+#else
+	apq8064_device_qup_i2c_gsbi1.dev.platform_data =
+					&apq8064_i2c_qup_gsbi1_pdata;
+#endif
 	apq8064_device_qup_i2c_gsbi3.dev.platform_data =
 					&apq8064_i2c_qup_gsbi3_pdata;
 	apq8064_device_qup_i2c_gsbi1.dev.platform_data =
@@ -2752,6 +3315,23 @@ static void __init apq8064_i2c_init(void)
 	}
 	mpq8064_device_qup_i2c_gsbi5.dev.platform_data =
 					&mpq8064_i2c_qup_gsbi5_pdata;
+#ifdef CONFIG_PIEZO
+	apq8064_device_qup_i2c_gsbi5.dev.platform_data =
+					&apq8064_i2c_qup_gsbi5_pdata;
+#endif
+
+#if defined(CONFIG_SKY_SND_EXTERNAL_AMP) //YDA165
+#if ( ( defined(CONFIG_SKY_EF51S_BOARD) || defined(CONFIG_SKY_EF51K_BOARD) || defined(CONFIG_SKY_EF51L_BOARD) ) && (CONFIG_BOARD_VER > CONFIG_WS10) ) || \
+	defined(CONFIG_SKY_EF52S_BOARD) || defined(CONFIG_SKY_EF52K_BOARD) || defined(CONFIG_SKY_EF52L_BOARD) || defined(CONFIG_SKY_EF52W_BOARD)
+	yda165_i2c_gpio_device.dev.platform_data =
+					&yda165_i2c_gpio_data;
+#else
+	fab2210_i2c_gpio_device.dev.platform_data =
+					&fab2210_i2c_gpio_data;
+#endif
+#endif /* CONFIG_SKY_SND_EXTERNAL_AMP */
+
+
 }
 
 #if defined(CONFIG_KS8851) || defined(CONFIG_KS8851_MODULE)
@@ -2775,12 +3355,21 @@ static int ethernet_init(void)
 }
 #endif
 
+#if defined(CONFIG_MACH_APQ8064_EF48S) || defined(CONFIG_MACH_APQ8064_EF49K) || defined(CONFIG_MACH_APQ8064_EF50L) || \
+	defined(CONFIG_MACH_APQ8064_EF51S) || defined(CONFIG_MACH_APQ8064_EF51K) || defined(CONFIG_MACH_APQ8064_EF51L) || \
+	defined(CONFIG_MACH_APQ8064_EF52S) || defined(CONFIG_MACH_APQ8064_EF52K) || defined(CONFIG_MACH_APQ8064_EF52L)
+#define GPIO_KEY_HOME				PM8921_GPIO_PM_TO_SYS(2)
+#define GPIO_KEY_VOLUME_UP		PM8921_GPIO_PM_TO_SYS(9)
+#define GPIO_KEY_VOLUME_DOWN_PM8921	PM8921_GPIO_PM_TO_SYS(10)
+#define GPIO_KEY_VOLUME_DOWN_PM8917	PM8921_GPIO_PM_TO_SYS(30)
+#else
 #define GPIO_KEY_HOME			PM8921_GPIO_PM_TO_SYS(27)
 #define GPIO_KEY_VOLUME_UP		PM8921_GPIO_PM_TO_SYS(35)
 #define GPIO_KEY_VOLUME_DOWN_PM8921	PM8921_GPIO_PM_TO_SYS(38)
 #define GPIO_KEY_VOLUME_DOWN_PM8917	PM8921_GPIO_PM_TO_SYS(30)
 #define GPIO_KEY_CAM_FOCUS		PM8921_GPIO_PM_TO_SYS(3)
 #define GPIO_KEY_CAM_SNAP		PM8921_GPIO_PM_TO_SYS(4)
+#endif
 #define GPIO_KEY_ROTATION_PM8921	PM8921_GPIO_PM_TO_SYS(42)
 #define GPIO_KEY_ROTATION_PM8917	PM8921_GPIO_PM_TO_SYS(8)
 
@@ -2873,6 +3462,30 @@ static struct platform_device cdp_kp_pdev = {
 	},
 };
 
+#if defined(CONFIG_MACH_APQ8064_EF48S) || defined(CONFIG_MACH_APQ8064_EF49K) || defined(CONFIG_MACH_APQ8064_EF50L) || \
+	defined(CONFIG_MACH_APQ8064_EF51S) || defined(CONFIG_MACH_APQ8064_EF51K) || defined(CONFIG_MACH_APQ8064_EF51L) || \
+	defined(CONFIG_MACH_APQ8064_EF52S) || defined(CONFIG_MACH_APQ8064_EF52K) || defined(CONFIG_MACH_APQ8064_EF52L)
+static struct gpio_keys_button mtp_keys[] = {
+	{
+		.code           = KEY_VOLUMEUP,
+		.gpio           = GPIO_KEY_VOLUME_UP,
+		.desc           = "volume_up_key",
+		.active_low     = 0,
+		.type		= EV_KEY,
+		.wakeup		= 1,
+		.debounce_interval = 15,
+	},
+	{
+		.code           = KEY_VOLUMEDOWN,
+		.gpio           = GPIO_KEY_VOLUME_DOWN_PM8921,
+		.desc           = "volume_down_key",
+		.active_low     = 0,
+		.type		= EV_KEY,
+		.wakeup		= 1,
+		.debounce_interval = 15,
+	},
+};
+#else
 static struct gpio_keys_button mtp_keys[] = {
 	{
 		.code           = KEY_CAMERA_FOCUS,
@@ -2910,6 +3523,7 @@ static struct gpio_keys_button mtp_keys[] = {
 		.debounce_interval = 15,
 	},
 };
+#endif
 
 static struct gpio_keys_platform_data mtp_keys_data = {
 	.buttons        = mtp_keys,
@@ -3040,6 +3654,7 @@ struct i2c_registry {
 };
 
 static struct i2c_registry apq8064_i2c_devices[] __initdata = {
+#if !defined(CONFIG_MACH_APQ8064_EF48S) && !defined(CONFIG_MACH_APQ8064_EF49K) && !defined(CONFIG_MACH_APQ8064_EF50L) && !defined(CONFIG_MACH_APQ8064_EF51S) && !defined(CONFIG_MACH_APQ8064_EF51K) && !defined(CONFIG_MACH_APQ8064_EF51L) && !defined(CONFIG_MACH_APQ8064_EF52S) && !defined(CONFIG_MACH_APQ8064_EF52K) && !defined(CONFIG_MACH_APQ8064_EF52L)
 	{
 		I2C_LIQUID,
 		APQ_8064_GSBI1_QUP_I2C_BUS_ID,
@@ -3058,18 +3673,70 @@ static struct i2c_registry apq8064_i2c_devices[] __initdata = {
 		cyttsp_info,
 		ARRAY_SIZE(cyttsp_info),
 	},
+#endif
+#if defined(CONFIG_TOUCHSCREEN_CYTTSP_GEN4)
+    {
+        I2C_SURF | I2C_FFA,
+        APQ_8064_GSBI3_QUP_I2C_BUS_ID,
+        cyttsp4_i2c_info,
+        ARRAY_SIZE(cyttsp4_i2c_info),
+    },
+#elif defined(CONFIG_TOUCHSCREEN_QT602240)
+    {
+        I2C_SURF | I2C_FFA,
+        APQ_8064_GSBI3_QUP_I2C_BUS_ID,
+        qt602240_i2c_boardinfo,
+        ARRAY_SIZE(qt602240_i2c_boardinfo),
+    },
+#endif 
+	#if defined(CONFIG_TOUCHSCREEN_SYNAPTICS_RMI4_PANTECH)
+	{
+		I2C_SURF | I2C_FFA,
+		APQ_8064_GSBI3_QUP_I2C_BUS_ID,
+		synaptics_i2c_info,
+		ARRAY_SIZE(synaptics_i2c_info),		
+	},
+#endif
+#if defined(CONFIG_PN544)
+	{
+		I2C_SURF | I2C_FFA | I2C_LIQUID | I2C_RUMI,
+		APQ_8064_GSBI1_QUP_I2C_BUS_ID,
+		nfc_i2c_boardinfo,
+		ARRAY_SIZE(nfc_i2c_boardinfo),
+	},
+#else
 	{
 		I2C_FFA | I2C_LIQUID,
 		APQ_8064_GSBI1_QUP_I2C_BUS_ID,
 		isa1200_board_info,
 		ARRAY_SIZE(isa1200_board_info),
 	},
+#endif
 	{
 		I2C_MPQ_CDP,
 		APQ_8064_GSBI5_QUP_I2C_BUS_ID,
 		cs8427_device_info,
 		ARRAY_SIZE(cs8427_device_info),
 	},
+
+#if defined(CONFIG_SKY_SND_EXTERNAL_AMP) //YDA165
+#if ( ( defined(CONFIG_SKY_EF51S_BOARD) || defined(CONFIG_SKY_EF51K_BOARD) || defined(CONFIG_SKY_EF51L_BOARD) ) && (CONFIG_BOARD_VER > CONFIG_WS10) ) || \
+	defined(CONFIG_SKY_EF52S_BOARD) || defined(CONFIG_SKY_EF52K_BOARD) || defined(CONFIG_SKY_EF52L_BOARD) || defined(CONFIG_SKY_EF52W_BOARD)
+	{
+		I2C_SURF | I2C_FFA,
+		APQ_8960_GSBI7_QUP_I2C_BUS_ID,
+		yda165_i2c_boardinfo,
+		ARRAY_SIZE(yda165_i2c_boardinfo),
+	},
+#else
+	{
+		I2C_SURF | I2C_FFA,
+		APQ_8960_GSBI7_QUP_I2C_BUS_ID,
+		fab2210_i2c_boardinfo,
+		ARRAY_SIZE(fab2210_i2c_boardinfo),
+	},
+#endif	
+#endif /* CONFIG_SKY_SND_EXTERNAL_AMP */ 
 };
 
 #define SX150X_EXP1_INT_N	PM8921_MPP_IRQ(PM8921_IRQ_BASE, 9)
@@ -3162,7 +3829,11 @@ static void __init register_i2c_devices(void)
 	/* Build the matching 'supported_machs' bitmask */
 	if (machine_is_apq8064_cdp())
 		mach_mask = I2C_SURF;
-	else if (machine_is_apq8064_mtp())
+	else if (machine_is_apq8064_mtp()
+#if defined(CONFIG_MACH_APQ8064_EF48S) ||defined(CONFIG_MACH_APQ8064_EF49K) || defined(CONFIG_MACH_APQ8064_EF50L) || defined(CONFIG_MACH_APQ8064_EF51S) || defined(CONFIG_MACH_APQ8064_EF51K) || defined(CONFIG_MACH_APQ8064_EF51L) || defined(CONFIG_MACH_APQ8064_EF52S) || defined(CONFIG_MACH_APQ8064_EF52K) || defined(CONFIG_MACH_APQ8064_EF52L)
+		 || (machine_is_apq8064_ef48s() || machine_is_apq8064_ef49k() || machine_is_apq8064_ef50l() || machine_is_apq8064_ef51s() || machine_is_apq8064_ef51k() || machine_is_apq8064_ef51l() || machine_is_apq8064_ef52s() ||  machine_is_apq8064_ef52k() ||  machine_is_apq8064_ef52l())
+#endif
+	  )
 		mach_mask = I2C_FFA;
 	else if (machine_is_apq8064_liquid())
 		mach_mask = I2C_LIQUID;
@@ -3192,6 +3863,16 @@ static void __init register_i2c_devices(void)
 					mpq8064_i2c_devices[i].info,
 					mpq8064_i2c_devices[i].len);
 	}
+#if defined(CONFIG_PANTECH_MAX17058_FG)
+	i2c_register_board_info(APQ_8064_MAX17058_I2C_BUS_ID,
+				max17058_i2c_boardinfo,
+				ARRAY_SIZE(max17058_i2c_boardinfo));
+#endif
+#if defined(CONFIG_PANTECH_SMB347_CHARGER)
+	i2c_register_board_info(APQ_8064_SMB347_I2C_BUS_ID,
+				smb347_i2c_boardinfo,
+				ARRAY_SIZE(smb347_i2c_boardinfo));
+#endif
 }
 
 static void enable_avc_i2c_bus(void)
@@ -3281,6 +3962,13 @@ static void __init apq8064_common_init(void)
 
 	apq8064_device_qup_spi_gsbi5.dev.platform_data =
 						&apq8064_qup_spi_gsbi5_pdata;
+#ifdef CONFIG_SKY_DMB_SPI_HW
+	apq8064_device_qup_spi_gsbi7.dev.platform_data = &apq8064_qup_spi_gsbi7_pdata;
+#endif
+#ifdef CONFIG_SKY_DMB_SPI_GPIO
+	gpio_spi_tdmb_device.dev.platform_data = &gpio_spi_tdmb_data;
+#endif
+
 	apq8064_init_pmic();
 	if (machine_is_apq8064_liquid())
 		msm_otg_pdata.mhl_enable = true;
@@ -3301,7 +3989,11 @@ static void __init apq8064_common_init(void)
 		platform_add_devices(pm8917_common_devices,
 					ARRAY_SIZE(pm8917_common_devices));
 
-	if (!machine_is_apq8064_mtp())
+	if (!machine_is_apq8064_mtp()
+#if defined(CONFIG_MACH_APQ8064_EF48S) ||defined(CONFIG_MACH_APQ8064_EF49K) || defined(CONFIG_MACH_APQ8064_EF50L) || defined(CONFIG_MACH_APQ8064_EF51S) || defined(CONFIG_MACH_APQ8064_EF51K) || defined(CONFIG_MACH_APQ8064_EF51L) || defined(CONFIG_MACH_APQ8064_EF52S) || defined(CONFIG_MACH_APQ8064_EF52K) || defined(CONFIG_MACH_APQ8064_EF52L)
+	  && !machine_is_apq8064_ef48s() && !machine_is_apq8064_ef49k() && !machine_is_apq8064_ef50l() && !machine_is_apq8064_ef51s() && !machine_is_apq8064_ef51k() && !machine_is_apq8064_ef51l() && !machine_is_apq8064_ef52s() && !machine_is_apq8064_ef52k() && !machine_is_apq8064_ef52l()
+#endif
+	)
 		platform_device_register(&apq8064_device_ext_ts_sw_vreg);
 
 	platform_add_devices(common_devices, ARRAY_SIZE(common_devices));
@@ -3319,7 +4011,11 @@ static void __init apq8064_common_init(void)
 
 	msm_hsic_pdata.swfi_latency =
 		msm_rpmrs_levels[0].latency_us;
-	if (machine_is_apq8064_mtp()) {
+	if (machine_is_apq8064_mtp()
+#if defined(CONFIG_MACH_APQ8064_EF48S) ||defined(CONFIG_MACH_APQ8064_EF49K) || defined(CONFIG_MACH_APQ8064_EF50L) || defined(CONFIG_MACH_APQ8064_EF51S) || defined(CONFIG_MACH_APQ8064_EF51K) || defined(CONFIG_MACH_APQ8064_EF51L) || defined(CONFIG_MACH_APQ8064_EF52S) || defined(CONFIG_MACH_APQ8064_EF52K) || defined(CONFIG_MACH_APQ8064_EF52L)
+	  || (machine_is_apq8064_ef48s() || machine_is_apq8064_ef49k() || machine_is_apq8064_ef50l() || machine_is_apq8064_ef51s() || machine_is_apq8064_ef51k() || machine_is_apq8064_ef51l() || machine_is_apq8064_ef52s() ||  machine_is_apq8064_ef52k() ||  machine_is_apq8064_ef52l())
+#endif
+	) {
 		msm_hsic_pdata.log2_irq_thresh = 5,
 		apq8064_device_hsic_host.dev.platform_data = &msm_hsic_pdata;
 		device_initialize(&apq8064_device_hsic_host.dev);
@@ -3332,7 +4028,11 @@ static void __init apq8064_common_init(void)
 	apq8064_pm8xxx_gpio_mpp_init();
 	apq8064_init_mmc();
 
-	if (machine_is_apq8064_mtp()) {
+	if (machine_is_apq8064_mtp()
+#if defined(CONFIG_MACH_APQ8064_EF48S) ||defined(CONFIG_MACH_APQ8064_EF49K) || defined(CONFIG_MACH_APQ8064_EF50L) || defined(CONFIG_MACH_APQ8064_EF51S) || defined(CONFIG_MACH_APQ8064_EF51K) || defined(CONFIG_MACH_APQ8064_EF51L) || defined(CONFIG_MACH_APQ8064_EF52S) || defined(CONFIG_MACH_APQ8064_EF52K) || defined(CONFIG_MACH_APQ8064_EF52L)
+	  || (machine_is_apq8064_ef48s() || machine_is_apq8064_ef49k() || machine_is_apq8064_ef50l() || machine_is_apq8064_ef51s() || machine_is_apq8064_ef51k() || machine_is_apq8064_ef51l() || machine_is_apq8064_ef52s() ||  machine_is_apq8064_ef52k() ||  machine_is_apq8064_ef52l())
+#endif
+	) {
 		if (socinfo_get_platform_subtype() == PLATFORM_SUBTYPE_DSDA2) {
 			amdm_8064_device.dev.platform_data =
 				&amdm_platform_data;
@@ -3372,6 +4072,10 @@ static void __init apq8064_common_init(void)
 	}
 	BUG_ON(msm_pm_boot_init(&msm_pm_boot_pdata));
 	apq8064_epm_adc_init();
+
+#if 0//def CONFIG_SKY_DMB_PMIC_19200
+	configure_dmb_xo(); 
+#endif
 }
 
 static void __init apq8064_allocate_memory_regions(void)
@@ -3383,9 +4087,15 @@ static void __init apq8064_cdp_init(void)
 {
 	if (meminfo_init(SYS_MEMORY, SZ_256M) < 0)
 		pr_err("meminfo_init() failed!\n");
+#if 0// defined(CONFIG_MACH_APQ8064_EF48S) ||defined(CONFIG_MACH_APQ8064_EF49K) || defined(CONFIG_MACH_APQ8064_EF50L) || defined(CONFIG_MACH_APQ8064_EF51S) || defined(CONFIG_MACH_APQ8064_EF51K) || defined(CONFIG_MACH_APQ8064_EF51L) || defined(CONFIG_MACH_APQ8064_EF52S) || defined(CONFIG_MACH_APQ8064_EF52K) || defined(CONFIG_MACH_APQ8064_EF52L)
+	if ((machine_is_apq8064_mtp() || machine_is_apq8064_ef48s() || machine_is_apq8064_ef49k() || machine_is_apq8064_ef50l() || machine_is_apq8064_ef51s() || machine_is_apq8064_ef51k() || machine_is_apq8064_ef51l() || machine_is_apq8064_ef52s() ||  machine_is_apq8064_ef52k() ||  machine_is_apq8064_ef52l()) &&
+		SOCINFO_VERSION_MINOR(socinfo_get_platform_version()) == 1)
+        //cyttsp_pdata.sleep_gpio = CYTTSP_TS_GPIO_SLEEP_ALT;
+//#else
 	if (machine_is_apq8064_mtp() &&
 		SOCINFO_VERSION_MINOR(socinfo_get_platform_version()) == 1)
-			cyttsp_pdata.sleep_gpio = CYTTSP_TS_GPIO_SLEEP_ALT;
+        //cyttsp_pdata.sleep_gpio = CYTTSP_TS_GPIO_SLEEP_ALT;
+#endif
 	apq8064_common_init();
 	if (machine_is_mpq8064_cdp() || machine_is_mpq8064_hrd() ||
 		machine_is_mpq8064_dtv()) {
@@ -3420,13 +4130,39 @@ static void __init apq8064_cdp_init(void)
 	if (machine_is_apq8064_cdp() || machine_is_apq8064_liquid())
 		platform_device_register(&cdp_kp_pdev);
 
-	if (machine_is_apq8064_mtp())
+	if (machine_is_apq8064_mtp()
+#if defined(CONFIG_MACH_APQ8064_EF48S) ||defined(CONFIG_MACH_APQ8064_EF49K) || defined(CONFIG_MACH_APQ8064_EF50L) || defined(CONFIG_MACH_APQ8064_EF51S) || defined(CONFIG_MACH_APQ8064_EF51K) || defined(CONFIG_MACH_APQ8064_EF51L) || defined(CONFIG_MACH_APQ8064_EF52S) || defined(CONFIG_MACH_APQ8064_EF52K) || defined(CONFIG_MACH_APQ8064_EF52L)
+	  || (machine_is_apq8064_ef48s() || machine_is_apq8064_ef49k() || machine_is_apq8064_ef50l() || machine_is_apq8064_ef51s() || machine_is_apq8064_ef51k() || machine_is_apq8064_ef51l() || machine_is_apq8064_ef52s() ||  machine_is_apq8064_ef52k() ||  machine_is_apq8064_ef52l())
+#endif
+	)
 		platform_device_register(&mtp_kp_pdev);
 
 	if (machine_is_mpq8064_cdp()) {
 		platform_device_register(&mpq_gpio_keys_pdev);
 		platform_device_register(&mpq_keypad_device);
 	}
+
+#ifdef CONFIG_SKY_DMB_SPI_HW //check
+	if (machine_is_apq8064_cdp())
+		platform_device_register(&apq8064_device_qup_spi_gsbi7);
+#endif
+
+#ifdef CONFIG_SKY_DMB_SPI_GPIO
+	if (machine_is_apq8064_cdp())
+		platform_device_register(&gpio_spi_tdmb_device);
+#endif
+
+#ifdef CONFIG_SKY_DMB_SPI_IF
+	spi_register_board_info(dmb_spi_board_info, ARRAY_SIZE(dmb_spi_board_info));
+#endif
+
+#ifdef CONFIG_SKY_DMB_I2C_GPIO
+	sky_dmb_i2c_gpio_init();
+#endif /* CONFIG_SKY_DMB_I2C_GPIO */
+
+#if defined(CONFIG_TOUCHSCREEN_PP8360)
+    sky_back_touch_i2c_gpio_init();
+#endif/* CONFIG_TOUCHSCREEN_PP8360 */
 }
 
 MACHINE_START(APQ8064_CDP, "QCT APQ8064 CDP")
@@ -3501,3 +4237,110 @@ MACHINE_START(MPQ8064_DTV, "QCT MPQ8064 DTV")
 	.restart = msm_restart,
 MACHINE_END
 
+MACHINE_START(APQ8064_EF48S, "PANTECH APQ8064 EF48S")
+	.map_io = apq8064_map_io,
+	.reserve = apq8064_reserve,
+	.init_irq = apq8064_init_irq,
+	.handle_irq = gic_handle_irq,
+	.timer = &msm_timer,
+	.init_machine = apq8064_cdp_init,
+	.init_early = apq8064_allocate_memory_regions,
+	.init_very_early = apq8064_early_reserve,
+	.restart = msm_restart,
+MACHINE_END
+
+MACHINE_START(APQ8064_EF49K, "PANTECH APQ8064 EF49K")
+	.map_io = apq8064_map_io,
+	.reserve = apq8064_reserve,
+	.init_irq = apq8064_init_irq,
+	.handle_irq = gic_handle_irq,
+	.timer = &msm_timer,
+	.init_machine = apq8064_cdp_init,
+	.init_early = apq8064_allocate_memory_regions,
+	.init_very_early = apq8064_early_reserve,
+	.restart = msm_restart,
+MACHINE_END
+
+MACHINE_START(APQ8064_EF50L, "PANTECH APQ8064 EF50L")
+	.map_io = apq8064_map_io,
+	.reserve = apq8064_reserve,
+	.init_irq = apq8064_init_irq,
+	.handle_irq = gic_handle_irq,
+	.timer = &msm_timer,
+	.init_machine = apq8064_cdp_init,
+	.init_early = apq8064_allocate_memory_regions,
+	.init_very_early = apq8064_early_reserve,
+	.restart = msm_restart,
+MACHINE_END
+
+MACHINE_START(APQ8064_EF51S, "PANTECH APQ8064 EF51S")
+	.map_io = apq8064_map_io,
+	.reserve = apq8064_reserve,
+	.init_irq = apq8064_init_irq,
+	.handle_irq = gic_handle_irq,
+	.timer = &msm_timer,
+	.init_machine = apq8064_cdp_init,
+	.init_early = apq8064_allocate_memory_regions,
+	.init_very_early = apq8064_early_reserve,
+	.restart = msm_restart,
+MACHINE_END
+
+MACHINE_START(APQ8064_EF51K, "PANTECH APQ8064 EF51K")
+	.map_io = apq8064_map_io,
+	.reserve = apq8064_reserve,
+	.init_irq = apq8064_init_irq,
+	.handle_irq = gic_handle_irq,
+	.timer = &msm_timer,
+	.init_machine = apq8064_cdp_init,
+	.init_early = apq8064_allocate_memory_regions,
+	.init_very_early = apq8064_early_reserve,
+	.restart = msm_restart,
+MACHINE_END
+
+MACHINE_START(APQ8064_EF51L, "PANTECH APQ8064 EF51L")
+	.map_io = apq8064_map_io,
+	.reserve = apq8064_reserve,
+	.init_irq = apq8064_init_irq,
+	.handle_irq = gic_handle_irq,
+	.timer = &msm_timer,
+	.init_machine = apq8064_cdp_init,
+	.init_early = apq8064_allocate_memory_regions,
+	.init_very_early = apq8064_early_reserve,
+	.restart = msm_restart,
+MACHINE_END
+
+MACHINE_START(APQ8064_EF52S, "PANTECH APQ8064 EF52S")
+        .map_io = apq8064_map_io,
+        .reserve = apq8064_reserve,
+        .init_irq = apq8064_init_irq,
+        .handle_irq = gic_handle_irq,
+        .timer = &msm_timer,
+        .init_machine = apq8064_cdp_init,
+        .init_early = apq8064_allocate_memory_regions,
+        .init_very_early = apq8064_early_reserve,
+        .restart = msm_restart,
+MACHINE_END
+
+MACHINE_START(APQ8064_EF52K, "PANTECH APQ8064 EF52K")
+        .map_io = apq8064_map_io,
+        .reserve = apq8064_reserve,
+        .init_irq = apq8064_init_irq,
+        .handle_irq = gic_handle_irq,
+        .timer = &msm_timer,
+        .init_machine = apq8064_cdp_init,
+        .init_early = apq8064_allocate_memory_regions,
+        .init_very_early = apq8064_early_reserve,
+        .restart = msm_restart,
+MACHINE_END
+
+MACHINE_START(APQ8064_EF52L, "PANTECH APQ8064 EF52L")
+        .map_io = apq8064_map_io,
+        .reserve = apq8064_reserve,
+        .init_irq = apq8064_init_irq,
+        .handle_irq = gic_handle_irq,
+        .timer = &msm_timer,
+        .init_machine = apq8064_cdp_init,
+        .init_early = apq8064_allocate_memory_regions,
+        .init_very_early = apq8064_early_reserve,
+        .restart = msm_restart,
+MACHINE_END
