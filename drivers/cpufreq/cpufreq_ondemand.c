@@ -1133,7 +1133,7 @@ static int dbs_sync_thread(void *data)
 		}
 
 		if (lock_policy_rwsem_write(cpu) < 0)
-			goto bail_acq_sema_faile
+			goto bail_acq_sema_failed;
 
 		if (!atomic_read(&this_dbs_info->sync_enabled)) {
 			atomic_set(&this_dbs_info->src_sync_cpu, -1);
