@@ -972,7 +972,7 @@ static void __init cpufreq_table_init(void)
 		cpufreq_frequency_table_get_attr(freq_table[cpu], cpu);
 	}
 
-	dev_info(drv.dev, "CPU Frequencies Supported: %d\n", freq_cnt)
+	dev_info(drv.dev, "CPU Frequencies Supported: %d\n", freq_cnt);
 }
 #else
 static void __init cpufreq_table_init(void) {}
@@ -1096,13 +1096,13 @@ void __init get_krait_bin_format_b(void __iomem *base, struct bin_info *bin)
 		break;
 	case 2:
 		bin->pvs = (pte_efuse >> 27) & 0x7;
-		break;;
+		break;
 	}
 	bin->speed_valid = true;
 
 	/* Check PVS_BLOW_STATUS */
 	pte_efuse = readl_relaxed(base + 0x4);
-	bin->pvs_valid = !!(pte_efuse & BIT(21))
+	bin->pvs_valid = !!(pte_efuse & BIT(21));
 }
 
 

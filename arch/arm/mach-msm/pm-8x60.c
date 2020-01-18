@@ -1295,7 +1295,6 @@ static int __init msm_pm_setup_saved_state(void)
 core_initcall(msm_pm_setup_saved_state);
 
 static const struct platform_suspend_ops msm_pm_ops = {
-	.prepare_late = msm_pm_prepare_late,
 	.enter = msm_pm_enter,
 	.valid = suspend_valid_only_mem,
 };
