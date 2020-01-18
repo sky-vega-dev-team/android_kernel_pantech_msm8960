@@ -113,7 +113,7 @@ out:
 }
 
 static int set_cpu_freq(struct cpufreq_policy *policy, unsigned int new_freq,
-			unsigned int index))
+			unsigned int index)
 {
 	int ret = 0;
 	int saved_sched_policy = -EINVAL;
@@ -405,7 +405,7 @@ static int __cpuinit msm_cpufreq_cpu_callback(struct notifier_block *nfb,
 		per_cpu(cpufreq_suspend, cpu).device_suspended = 1;
 		mutex_unlock(&per_cpu(cpufreq_suspend, cpu).suspend_mutex);
 		break;
-	case CPU_DOWN_FAILED::
+	case CPU_DOWN_FAILED:
 		per_cpu(cpufreq_suspend, cpu).device_suspended = 0;
 		break;
 	/*
