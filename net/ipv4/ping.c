@@ -249,11 +249,9 @@ int ping_init_sock(struct sock *sk)
 	gid_t group = current_egid();
 	gid_t range[2];
 	struct group_info *group_info;
-	int i, j, count  ;
-        int ret = 0;
-#ifdef CONFIG_LGU_DS_RETURN_CURRENT_GROUP_ID
+	int i, j, count;
 	int ret = 0;
-#endif
+
 	inet_get_ping_group_range_net(net, range, range+1);
 	if (range[0] <= group && group <= range[1])
 		return 0;
@@ -266,25 +264,17 @@ int ping_init_sock(struct sock *sk)
 		for (j = 0; j < cp_count; j++) {
 			group = group_info->blocks[i][j];
 			if (range[0] <= group && group <= range[1])
-#ifdef CONFIG_LGU_DS_RETURN_CURRENT_GROUP_ID
-				goto out_release_group;
-#else
-				goto out_release_group;
-#endif				
+				goto out_release_group;		
 		}
 
 		count -= cp_count;
 	}
 	
-#ifndef CONFIG_LGU_DS_RETURN_CURRENT_GROUP_ID
-	return -EACCES;
-#else
 	ret = -EACCES;
 
 out_release_group:
 	put_group_info(group_info);
 	return ret;
-#endif	
 }
 EXPORT_SYMBOL_GPL(ping_init_sock);
 

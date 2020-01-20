@@ -1228,29 +1228,6 @@ static int __perf_remove_from_context(void *info)
 	return 0;
 }
 
-#ifdef CONFIG_SMP
-static void perf_retry_remove(struct perf_event *event)
-{
-	int up_ret;
-	/*
-	 * CPU was offline. Bring it online so we can
-	 * gracefully exit a perf context.
-	 */
-	up_ret = cpu_up(event->cpu);
-	if (!up_ret)
-		/* Try the remove call once again. */
-		cpu_function_call(event->cpu, __perf_remove_from_context,
-				  event);
-	else
-		pr_err("Failed to bring up CPU: %d, ret: %d\n",
-		       event->cpu, up_ret);
-}
-#else
-static void perf_retry_remove(struct perf_event *event)
-{
-}
-#endif
-
 /*
  * Remove the event from a task's (or a CPU's) list of events.
  *
@@ -1272,7 +1249,6 @@ static void perf_remove_from_context(struct perf_event *event, bool detach_group
 		.event = event,
 		.detach_group = detach_group,
 	};
-	int ret;
 
 	lockdep_assert_held(&ctx->mutex);
 
@@ -1296,6 +1272,16 @@ retry:
 	 */
 	if (ctx->is_active) {
 		raw_spin_unlock_irq(&ctx->lock);
+		/*
+		 * Reload the task pointer, it might have been changed by
+		 * a concurrent perf_event_context_sched_out().
+		 */
+		task = ctx->task;
+		/*
+		 * Reload the task pointer, it might have been changed by
+		 * a concurrent perf_event_context_sched_out().
+		 */
+		task = ctx->task;
 		goto retry;
 	}
 

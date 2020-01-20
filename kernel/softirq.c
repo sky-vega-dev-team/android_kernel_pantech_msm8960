@@ -766,7 +766,6 @@ static int ksoftirqd_should_run(unsigned int cpu)
 	return local_softirq_pending();
 }
 
-wait_to_die:
 static void run_ksoftirqd(unsigned int cpu)
 {
 	local_irq_disable();
