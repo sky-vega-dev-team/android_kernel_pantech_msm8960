@@ -494,10 +494,6 @@ static bool __ref msm_pm_spm_power_collapse(
 	bool collapsed = 0;
 	int ret;
 	bool save_cpu_regs = !cpu || from_idle;
-	unsigned int saved_gic_cpu_ctrl;
-
-	saved_gic_cpu_ctrl = readl_relaxed(MSM_QGIC_CPU_BASE + GIC_CPU_CTRL);
-	mb();
 
 	if (MSM_PM_DEBUG_POWER_COLLAPSE & msm_pm_debug_mask)
 		pr_info("CPU%u: %s: notify_rpm %d\n",
@@ -522,10 +518,6 @@ static bool __ref msm_pm_spm_power_collapse(
 	if (from_idle && msm_pm_pc_reset_timer)
 		clockevents_notify(CLOCK_EVT_NOTIFY_BROADCAST_ENTER, &cpu);
 
-#ifdef CONFIG_VFP
-	vfp_pm_suspend();
-#endif
-
 #if defined(CONFIG_PANTECH_DEBUG) 
 #ifdef CONFIG_PANTECH_DEBUG_SCHED_LOG  //p14291_121102
 	debug_power_collaspe_status[smp_processor_id()] = (from_idle<<8)|(notify_rpm<<4)|1;
@@ -540,14 +532,7 @@ static bool __ref msm_pm_spm_power_collapse(
 	msm_pm_boot_config_after_pc(cpu);
 
 	if (collapsed) {
-#ifdef CONFIG_VFP
-		vfp_pm_resume();
-#endif
 		cpu_init();
-		writel(0xF0, MSM_QGIC_CPU_BASE + GIC_CPU_PRIMASK);
-		writel_relaxed(saved_gic_cpu_ctrl,
-				MSM_QGIC_CPU_BASE + GIC_CPU_CTRL);
-		mb();
 		local_fiq_enable();
 	}
 #if defined(CONFIG_PANTECH_DEBUG) && !defined(CONFIG_PANTECH_USER_BUILD)
