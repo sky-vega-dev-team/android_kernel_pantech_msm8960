@@ -557,6 +557,8 @@ static void mdss_fb_shutdown(struct platform_device *pdev)
 }
 #endif
 
+static void bl_workqueue_handler(struct work_struct *work);
+
 static void msm_fb_shutdown(struct platform_device *pdev)
 {
        struct msm_fb_data_type *mfd = platform_get_drvdata(pdev);
