@@ -143,6 +143,7 @@ static void check_temp(struct work_struct *work)
 
 reschedule:
 	schedule_delayed_work_on(0, &check_temp_work, msecs_to_jiffies(250));
+}
 
 int __devinit msm_thermal_init(struct msm_thermal_data *pdata)
 {
