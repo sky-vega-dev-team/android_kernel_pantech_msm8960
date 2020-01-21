@@ -1179,7 +1179,7 @@ static void kcryptd_async_done(struct crypto_async_request *async_req,
 
 	mempool_free(req_of_dmreq(cc, dmreq), cc->req_pool);
 
-	if (!atomic_dec_and_test(&ctx->pending))
+	if (!atomic_dec_and_test(&ctx->cc_pending))
 		goto done;
 
 	if (bio_data_dir(io->base_bio) == READ)

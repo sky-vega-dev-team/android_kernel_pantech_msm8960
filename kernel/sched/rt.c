@@ -1250,6 +1250,8 @@ select_task_rq_rt(struct task_struct *p, int sd_flag, int flags)
 	if (curr && unlikely(rt_task(curr)) &&
 	    (curr->rt.nr_cpus_allowed < 2 ||
 		curr->prio <= p->prio)) {
+		int target = find_lowest_rq(p);
+
 		/*
 		 * Don't bother moving it if the destination CPU is
 		 * not running a lower priority task.
