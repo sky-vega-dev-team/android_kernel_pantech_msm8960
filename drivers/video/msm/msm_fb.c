@@ -200,15 +200,11 @@ static void msm_fb_set_bl_brightness(struct led_classdev *led_cdev,
 	else if (value >= MAX_BACKLIGHT_BRIGHTNESS)
 		bl_lvl = mfd->panel_info.bl_max;
 	else
-#ifdef CONFIG_F_SKYDISP_BACKLIGHT_BUGFIX
 		bl_lvl = mfd->panel_info.bl_min + ((value - 1) * 2 *
 			(mfd->panel_info.bl_max - mfd->panel_info.bl_min) +
 			MAX_BACKLIGHT_BRIGHTNESS - 1) /
 			(MAX_BACKLIGHT_BRIGHTNESS - 1) / 2;
-#else
-		bl_lvl = (2 * value * mfd->panel_info.bl_max + MAX_BACKLIGHT_BRIGHTNESS)		
-			/(2 * MAX_BACKLIGHT_BRIGHTNESS);
-#endif
+
         down(&mfd->sem);
 	msm_fb_set_backlight(mfd, bl_lvl);
 	up(&mfd->sem);
