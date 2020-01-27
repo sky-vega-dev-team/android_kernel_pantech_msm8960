@@ -490,9 +490,7 @@ static void ext4_handle_error(struct super_block *sb)
 		/* added for userdata partition auti repair */
 		if(strcmp(sb->s_id, "mmcblk0p26")==0)
 		{
-#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
-			pantech_sys_reset_reason_set(SYS_RESET_REASON_USERDATA_FS);
-#endif
+			pantech_sys_reset_reason_set(SYS_RESET_REASON_USERDATA_FS); 
 			panic("EXT4-fs (device %s) ERRORS_RO : panic forced after error\n",
 					sb->s_id);
 		}
@@ -680,9 +678,7 @@ void __ext4_abort(struct super_block *sb, const char *function,
 #ifdef CONFIG_PANTECH_FS_AUTO_REPAIR 
 		if(strcmp(sb->s_id, "mmcblk0p26")==0)
 		{
-#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
 			pantech_sys_reset_reason_set(SYS_RESET_REASON_USERDATA_FS); 
-#endif
 			panic("EXT4-fs (device %s) ERRORS_RO : panic forced after error\n",
 					sb->s_id);
 		}
