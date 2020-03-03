@@ -429,3 +429,4 @@ obj-$(CONFIG_ARCH_RANDOM) += early_random.o
 obj-$(CONFIG_PANTECH_ERR_CRASH_LOGGING) += pantech_sys.o pantech_restart.o pantech_apanic.o pantech_debug.o
 obj-$(CONFIG_FORCE_FAST_CHARGE) += fastchg.o
 obj-$(CONFIG_AUTOSMP) += autosmp.o
+obj-$(CONFIG_INTELLI_HOTPLUG) += intelli_hotplug.o
